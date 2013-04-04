@@ -9,18 +9,16 @@ function xhr(url, callback, cors) {
 
     var x = new window.XMLHttpRequest();
 
-    if (cors && typeof window.XDomainRequest !== 'undefined') {
+    if (cors && typeof window.XDomainRequest === 'object') {
         // IE8-10
         x = new window.XDomainRequest();
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
-    x.onreadystatechange = function readystatechange() {
-        if (this.readyState === 4) {
-            callback.call(this, null, this);
-            callback = noop;
-        }
+    x.onload = function load() {
+        callback.call(this, null, this);
+        callback = noop;
     };
 
     // Call the callback with the XMLHttpRequest object as an error and prevent
@@ -37,7 +35,7 @@ function xhr(url, callback, cors) {
     // only one supported here.
     x.open('GET', url);
     // Send the request. Sending data is not supported.
-    x.send();
+    x.send(null);
 
     return xhr;
 }
@@ -216,7 +214,7 @@ function createHarness (conf_) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"./lib/default_stream":5,"./lib/test":6,"./lib/render":7,"__browserify_process":4}],5:[function(require,module,exports){
+},{"./lib/default_stream":5,"./lib/render":6,"./lib/test":7,"__browserify_process":4}],5:[function(require,module,exports){
 var Stream = require('stream');
 
 module.exports = function () {
@@ -909,6 +907,105 @@ exports.format = function(f) {
 };
 
 },{"events":9}],6:[function(require,module,exports){
+var Stream = require('stream');
+var json = typeof JSON === 'object' ? JSON : require('jsonify');
+
+module.exports = Render;
+
+function Render () {
+    Stream.call(this);
+    this.readable = true;
+    this.count = 0;
+    this.fail = 0;
+    this.pass = 0;
+}
+
+Render.prototype = new Stream;
+
+Render.prototype.pipe = function () {
+    this.piped = true;
+    return Stream.prototype.pipe.apply(this, arguments);
+};
+
+Render.prototype.begin = function () {
+    this.emit('data', 'TAP version 13\n');
+};
+
+Render.prototype.push = function (t) {
+    var self = this;
+    this.emit('data', '# ' + t.name + '\n');
+    
+    t.on('result', function (res) {
+        if (typeof res === 'string') {
+            self.emit('data', '# ' + res + '\n');
+            return;
+        }
+
+        self.emit('data', encodeResult(res, self.count + 1));
+        self.count ++;
+        
+        if (res.ok) self.pass ++
+        else self.fail ++
+    });
+};
+
+Render.prototype.close = function () {
+    this.emit('data', '\n1..' + this.count + '\n');
+    this.emit('data', '# tests ' + this.count + '\n');
+    this.emit('data', '# pass  ' + this.pass + '\n');
+    if (this.fail) {
+        this.emit('data', '# fail  ' + this.fail + '\n');
+    }
+    else {
+        this.emit('data', '\n# ok\n');
+    }
+    
+    this.emit('end');
+};
+
+function encodeResult (res, count) {
+    var output = '';
+    output += (res.ok ? 'ok ' : 'not ok ') + count;
+    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
+    
+    if (res.skip) output += ' # SKIP';
+    else if (res.todo) output += ' # TODO';
+    
+    output += '\n';
+    
+    if (!res.ok) {
+        var outer = '  ';
+        var inner = outer + '  ';
+        output += outer + '---\n';
+        output += inner + 'operator: ' + res.operator + '\n';
+        
+        var ex = json.stringify(res.expected) || '';
+        var ac = json.stringify(res.actual) || '';
+        
+        if (Math.max(ex.length, ac.length) > 65) {
+            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
+            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
+        }
+        else {
+            output += inner + 'expected: ' + ex + '\n';
+            output += inner + 'actual:   ' + ac + '\n';
+        }
+        if (res.operator === 'error' && res.actual && res.actual.stack) {
+            var lines = String(res.actual.stack).split('\n');
+            output += inner + 'stack:\n';
+            output += inner + '  ' + lines[0] + '\n';
+            for (var i = 1; i < lines.length; i++) {
+                output += inner + lines[i] + '\n';
+            }
+        }
+        
+        output += outer + '...\n';
+    }
+    
+    return output;
+}
+
+},{"stream":8,"jsonify":11}],7:[function(require,module,exports){
 (function(process){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -1229,113 +1326,7 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"events":9,"defined":11,"deep-equal":12,"__browserify_process":4}],7:[function(require,module,exports){
-var Stream = require('stream');
-var json = typeof JSON === 'object' ? JSON : require('jsonify');
-
-module.exports = Render;
-
-function Render () {
-    Stream.call(this);
-    this.readable = true;
-    this.count = 0;
-    this.fail = 0;
-    this.pass = 0;
-}
-
-Render.prototype = new Stream;
-
-Render.prototype.pipe = function () {
-    this.piped = true;
-    return Stream.prototype.pipe.apply(this, arguments);
-};
-
-Render.prototype.begin = function () {
-    this.emit('data', 'TAP version 13\n');
-};
-
-Render.prototype.push = function (t) {
-    var self = this;
-    this.emit('data', '# ' + t.name + '\n');
-    
-    t.on('result', function (res) {
-        if (typeof res === 'string') {
-            self.emit('data', '# ' + res + '\n');
-            return;
-        }
-
-        self.emit('data', encodeResult(res, self.count + 1));
-        self.count ++;
-        
-        if (res.ok) self.pass ++
-        else self.fail ++
-    });
-};
-
-Render.prototype.close = function () {
-    this.emit('data', '\n1..' + this.count + '\n');
-    this.emit('data', '# tests ' + this.count + '\n');
-    this.emit('data', '# pass  ' + this.pass + '\n');
-    if (this.fail) {
-        this.emit('data', '# fail  ' + this.fail + '\n');
-    }
-    else {
-        this.emit('data', '\n# ok\n');
-    }
-    
-    this.emit('end');
-};
-
-function encodeResult (res, count) {
-    var output = '';
-    output += (res.ok ? 'ok ' : 'not ok ') + count;
-    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
-    
-    if (res.skip) output += ' # SKIP';
-    else if (res.todo) output += ' # TODO';
-    
-    output += '\n';
-    
-    if (!res.ok) {
-        var outer = '  ';
-        var inner = outer + '  ';
-        output += outer + '---\n';
-        output += inner + 'operator: ' + res.operator + '\n';
-        
-        var ex = json.stringify(res.expected) || '';
-        var ac = json.stringify(res.actual) || '';
-        
-        if (Math.max(ex.length, ac.length) > 65) {
-            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
-            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
-        }
-        else {
-            output += inner + 'expected: ' + ex + '\n';
-            output += inner + 'actual:   ' + ac + '\n';
-        }
-        if (res.operator === 'error' && res.actual && res.actual.stack) {
-            var lines = String(res.actual.stack).split('\n');
-            output += inner + 'stack:\n';
-            output += inner + '  ' + lines[0] + '\n';
-            for (var i = 1; i < lines.length; i++) {
-                output += inner + lines[i] + '\n';
-            }
-        }
-        
-        output += outer + '...\n';
-    }
-    
-    return output;
-}
-
-},{"stream":8,"jsonify":13}],11:[function(require,module,exports){
-module.exports = function () {
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] !== undefined) return arguments[i];
-    }
-};
-
-},{}],12:[function(require,module,exports){
+},{"events":9,"deep-equal":12,"defined":13,"__browserify_process":4}],12:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1422,6 +1413,13 @@ function objEquiv(a, b) {
 }
 
 },{}],13:[function(require,module,exports){
+module.exports = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined) return arguments[i];
+    }
+};
+
+},{}],11:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 

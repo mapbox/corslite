@@ -8,18 +8,16 @@ function xhr(url, callback, cors) {
 
     var x = new window.XMLHttpRequest();
 
-    if (cors && typeof window.XDomainRequest !== 'undefined') {
+    if (cors && typeof window.XDomainRequest === 'object') {
         // IE8-10
         x = new window.XDomainRequest();
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
-    x.onreadystatechange = function readystatechange() {
-        if (this.readyState === 4) {
-            callback.call(this, null, this);
-            callback = noop;
-        }
+    x.onload = function load() {
+        callback.call(this, null, this);
+        callback = noop;
     };
 
     // Call the callback with the XMLHttpRequest object as an error and prevent
@@ -36,7 +34,7 @@ function xhr(url, callback, cors) {
     // only one supported here.
     x.open('GET', url);
     // Send the request. Sending data is not supported.
-    x.send();
+    x.send(null);
 
     return xhr;
 }
