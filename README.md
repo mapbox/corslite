@@ -1,6 +1,6 @@
 ## corslite
 
-![](https://ci.testling.com/mapbox/corslite.png)
+[![](https://ci.testling.com/mapbox/corslite.png)](https://ci.testling.com/mapbox/corslite)
 
 ```js
 xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
