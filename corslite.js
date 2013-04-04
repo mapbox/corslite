@@ -8,7 +8,7 @@ function xhr(url, callback, cors) {
     }
 
     if (cors) {
-        if ('withCredentials' in (new XHR())) {
+        if ('withCredentials' in (new window.XMLHttpRequest())) {
             // IE=10, modern browsers
             x = new window.XMLHttpRequest();
         } else if (typeof window.XDomainRequest !== 'undefined') {
@@ -44,3 +44,5 @@ function xhr(url, callback, cors) {
 
     return xhr;
 }
+
+if (typeof module !== 'undefined') module.exports = xhr;

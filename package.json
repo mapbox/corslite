@@ -1,0 +1,55 @@
+{
+  "name": "corslite",
+  "version": "0.0.0",
+  "description": "xhr for browsers and ie",
+  "main": "corslite.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "devDependencies": {
+    "tape": "~0.1.5",
+    "tap": "~0.4.0"
+  },
+  "testling": {
+    "browsers": {
+      "ie": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "ff": [
+        3.5,
+        10,
+        15,
+        19
+      ],
+      "chrome": [
+        10,
+        22,
+        25
+      ],
+      "safari": [
+        5.1,
+        6
+      ],
+      "opera": [
+        12
+      ]
+    },
+    "files": "test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tmcw/corslite.git"
+  },
+  "author": "",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "gitHead": "f2178bb0990b9208a18d1671f3b387018279715a"
+}
