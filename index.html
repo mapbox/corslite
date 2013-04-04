@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+    </head>
+    <body>
+        <pre id='result'></pre>
+        <script src='corslite.js'></script>
+        <script>
+        xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, rsp) {
+            console.log(arguments);
+            document.getElementById('result').innerHTML = rsp.responseText;
+        }, true);
+        </script>
+    </body>
+</html>
