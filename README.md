@@ -1,3 +1,5 @@
+![a floating can of corslite](https://f.cloud.github.com/assets/83384/341733/2fc1dcb8-9d7a-11e2-8ad1-7961248920c3.png)
+
 ## corslite
 
 ![](https://ci.testling.com/mapbox/corslite.png)
