@@ -7,19 +7,28 @@ function xhr(url, callback, cors) {
         return callback(Error('Browser not supported'));
     }
 
-    var x = new window.XMLHttpRequest();
+    var x;
 
     if (cors && typeof window.XDomainRequest === 'object') {
         // IE8-10
         x = new window.XDomainRequest();
+    } else {
+        x = new window.XMLHttpRequest();
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
-    x.onload = function load() {
-        callback.call(this, null, this);
-        callback = noop;
-    };
+    if ('onload' in x) {
+        x.onload = function load() {
+            callback.call(this, null, this);
+        };
+    } else {
+        x.readystatechange = function readystate() {
+            if (this.readyState === 4) {
+                callback.call(this, null, this);
+            }
+        };
+    }
 
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
@@ -33,7 +42,7 @@ function xhr(url, callback, cors) {
     x.ontimeout = noop;
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
-    x.open('GET', url);
+    x.open('GET', url, true);
     // Send the request. Sending data is not supported.
     x.send(null);
 
@@ -115,10 +124,6 @@ process.chdir = function (dir) {
 var Render = require('./lib/render');
 var Test = require('./lib/test');
 
-exports = module.exports = createHarness();
-exports.createHarness = createHarness;
-exports.Test = Test;
-
 var canEmitExit = typeof process !== 'undefined' && process
     && typeof process.on === 'function'
 ;
@@ -133,28 +138,69 @@ var onexit = (function () {
     return function (cb) { stack.push(cb) };
 })();
 
+var nextTick = typeof setImmediate !== 'undefined'
+    ? setImmediate
+    : process.nextTick
+;
+
+exports = module.exports = createHarness();
+exports.createHarness = createHarness;
+exports.Test = Test;
+
+var exitInterval;
+
 function createHarness (conf_) {
     var pending = [];
     var running = false;
     var count = 0;
     
     var began = false;
+    var only = false;
+    var closed = false;
     var out = new Render();
+    if (!conf_) conf_ = {};
+    
+    var tests = [];
+    if (conf_.exit === false && exitInterval) clearInterval(exitInterval);
+    
+    exitInterval = !exitInterval && conf_.exit !== false && canEmitExit
+    && typeof process._getActiveHandles === 'function'
+    && setInterval(function () {
+        if (process._getActiveHandles().length === 1) {
+            tests.forEach(function (t) { t._exit() });
+        }
+    }, 200);
+    
+    var exitCode = 0;
+    var exit = function (c) { exitCode = c };
+    
+    out.on('end', function () {
+        nextTick(function () {
+            clearInterval(exitInterval);
+            if (canExit && conf_.exit !== false) process.exit(exitCode);
+        });
+    });
     
     var test = function (name, conf, cb) {
         count++;
         var t = new Test(name, conf, cb);
-        if (!conf || typeof conf !== 'object') conf = conf_ || {};
+        tests.push(t);
+        if (!conf || typeof conf !== 'object') conf = conf_;
         
         if (conf.exit !== false) {
             onexit(function (code) {
                 t._exit();
-                out.close();
-                if (!code && !t._ok) process.exit(1);
+                if (!closed) {
+                    closed = true
+                    out.close();
+                }
+                if (!code && !t._ok && (!only || name === only)) {
+                    exit(1);
+                }
             });
         }
         
-        process.nextTick(function () {
+        nextTick(function () {
             if (!out.piped) out.pipe(createDefaultStream());
             if (!began) out.begin();
             began = true;
@@ -165,6 +211,11 @@ function createHarness (conf_) {
                 t.run();
             };
             
+            if (only && name !== only) {
+                count--;
+                return;
+            }
+
             if (running || pending.length) {
                 pending.push(run);
             }
@@ -176,6 +227,7 @@ function createHarness (conf_) {
             st.on('test', sub);
             st.on('end', onend);
         });
+        t.on('result', function (r) { if (!r.ok) exitCode = 1 });
         
         t.on('end', onend);
         
@@ -184,7 +236,7 @@ function createHarness (conf_) {
         function onend () {
             count--;
             if (this._progeny.length) {
-                var unshifts = this._progeny.map(function (st) {
+                var unshifts = map(this._progeny, function (st) {
                     return function () {
                         running = true;
                         out.push(st);
@@ -194,21 +246,41 @@ function createHarness (conf_) {
                 pending.unshift.apply(pending, unshifts);
             }
             
-            process.nextTick(function () {
+            nextTick(function () {
                 running = false;
                 if (pending.length) return pending.shift()();
-                if (count === 0) {
+                if (count === 0 && !closed) {
+                    closed = true
                     out.close();
                 }
                 if (conf.exit !== false && canExit && !t._ok) {
-                    process.exit(1);
+                    exit(1);
                 }
             });
         }
     };
     
+    test.only = function (name) {
+        if (only) {
+            throw new Error("there can only be one only test");
+        }
+        
+        only = name;
+        
+        return test.apply(null, arguments);
+    };
+    
     test.stream = out;
     return test;
+}
+
+function map (xs, f) {
+    if (xs.map) return xs.map(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        res.push(f(xs[i]));
+    }
+    return res;
 }
 
 // vim: set softtabstop=4 shiftwidth=4:
@@ -550,6 +622,184 @@ EventEmitter.prototype.listeners = function(type) {
     this._events[type] = [this._events[type]];
   }
   return this._events[type];
+};
+
+})(require("__browserify_process"))
+},{"__browserify_process":4}],11:[function(require,module,exports){
+(function(process){function filter (xs, fn) {
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (fn(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length; i >= 0; i--) {
+    var last = parts[i];
+    if (last == '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Regex to split a filename into [*, dir, basename, ext]
+// posix version
+var splitPathRe = /^(.+\/(?!$)|\/)?((?:.+?)?(\.[^.]*)?)$/;
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+var resolvedPath = '',
+    resolvedAbsolute = false;
+
+for (var i = arguments.length; i >= -1 && !resolvedAbsolute; i--) {
+  var path = (i >= 0)
+      ? arguments[i]
+      : process.cwd();
+
+  // Skip empty and invalid entries
+  if (typeof path !== 'string' || !path) {
+    continue;
+  }
+
+  resolvedPath = path + '/' + resolvedPath;
+  resolvedAbsolute = path.charAt(0) === '/';
+}
+
+// At this point the path should be resolved to a full absolute path, but
+// handle relative paths to be safe (might happen when process.cwd() fails)
+
+// Normalize the path
+resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+var isAbsolute = path.charAt(0) === '/',
+    trailingSlash = path.slice(-1) === '/';
+
+// Normalize the path
+path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+  
+  return (isAbsolute ? '/' : '') + path;
+};
+
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    return p && typeof p === 'string';
+  }).join('/'));
+};
+
+
+exports.dirname = function(path) {
+  var dir = splitPathRe.exec(path)[1] || '';
+  var isWindows = false;
+  if (!dir) {
+    // No dirname
+    return '.';
+  } else if (dir.length === 1 ||
+      (isWindows && dir.length <= 3 && dir.charAt(1) === ':')) {
+    // It is just a slash or a drive letter with a slash
+    return dir;
+  } else {
+    // It is a full dirname, strip trailing slash
+    return dir.substring(0, dir.length - 1);
+  }
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPathRe.exec(path)[2] || '';
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPathRe.exec(path)[3] || '';
+};
+
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
 };
 
 })(require("__browserify_process"))
@@ -979,8 +1229,8 @@ function encodeResult (res, count) {
         output += outer + '---\n';
         output += inner + 'operator: ' + res.operator + '\n';
         
-        var ex = json.stringify(res.expected) || '';
-        var ac = json.stringify(res.actual) || '';
+        var ex = json.stringify(res.expected, getSerialize()) || '';
+        var ac = json.stringify(res.actual, getSerialize()) || '';
         
         if (Math.max(ex.length, ac.length) > 65) {
             output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
@@ -989,6 +1239,9 @@ function encodeResult (res, count) {
         else {
             output += inner + 'expected: ' + ex + '\n';
             output += inner + 'actual:   ' + ac + '\n';
+        }
+        if (res.at) {
+            output += inner + 'at: ' + res.at + '\n';
         }
         if (res.operator === 'error' && res.actual && res.actual.stack) {
             var lines = String(res.actual.stack).split('\n');
@@ -1005,12 +1258,43 @@ function encodeResult (res, count) {
     return output;
 }
 
-},{"stream":8,"jsonify":11}],7:[function(require,module,exports){
-(function(process){var EventEmitter = require('events').EventEmitter;
+function getSerialize() {
+    var seen = [];
+
+    return function (key, value) {
+        var ret = value;
+        if (typeof value === 'object' && value) {
+            var found = false
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === value) {
+                    found = true
+                    break;
+                }
+            }
+
+            if (found) {
+                ret = '[Circular]'
+            } else {
+                seen.push(value)
+            }
+        }
+
+        return ret
+    }
+}
+
+},{"stream":8,"jsonify":12}],7:[function(require,module,exports){
+(function(process,__dirname){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
+var path = require('path');
 
 module.exports = Test;
+
+var nextTick = typeof setImmediate !== 'undefined'
+    ? setImmediate
+    : process.nextTick
+;
 
 Test.prototype = new EventEmitter;
 
@@ -1118,10 +1402,33 @@ Test.prototype._assert = function assert (ok, opts) {
         res.error = defined(extra.error, opts.error, new Error(res.name));
     }
     
+    var e = new Error('exception');
+    var err = (e.stack || '').split('\n');
+    var dir = path.dirname(__dirname) + '/';
+    
+    for (var i = 0; i < err.length; i++) {
+        var m = /^\s*\bat\s+(.+)/.exec(err[i]);
+        if (!m) continue;
+        
+        var s = m[1].split(/\s+/);
+        var filem = /(\/[^:\s]+:(\d+)(?::(\d+))?)/.exec(s[1]);
+        if (!filem) continue;
+        
+        if (filem[1].slice(0, dir.length) === dir) continue;
+        
+        res.functionName = s[0];
+        res.file = filem[1];
+        res.line = Number(filem[2]);
+        if (filem[3]) res.column = filem[3];
+        
+        res.at = m[1];
+        break;
+    }
+    
     self.emit('result', res);
     
     if (self._plan === self.assertCount) {
-        process.nextTick(function () {
+        nextTick(function () {
             if (!self.ended) self.end();
         });
     }
@@ -1325,8 +1632,8 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 
 // vim: set softtabstop=4 shiftwidth=4:
 
-})(require("__browserify_process"))
-},{"events":9,"deep-equal":12,"defined":13,"__browserify_process":4}],12:[function(require,module,exports){
+})(require("__browserify_process"),"/../node_modules/tape/lib")
+},{"events":9,"path":11,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1412,18 +1719,18 @@ function objEquiv(a, b) {
   return true;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = function () {
     for (var i = 0; i < arguments.length; i++) {
         if (arguments[i] !== undefined) return arguments[i];
     }
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
-},{"./lib/parse":14,"./lib/stringify":15}],14:[function(require,module,exports){
+},{"./lib/parse":15,"./lib/stringify":16}],15:[function(require,module,exports){
 var at, // The index of the current character
     ch, // The current character
     escapee = {
@@ -1698,7 +2005,7 @@ module.exports = function (source, reviver) {
     }({'': result}, '')) : result;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     gap,

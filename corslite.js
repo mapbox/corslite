@@ -6,19 +6,28 @@ function xhr(url, callback, cors) {
         return callback(Error('Browser not supported'));
     }
 
-    var x = new window.XMLHttpRequest();
+    var x;
 
     if (cors && typeof window.XDomainRequest === 'object') {
         // IE8-10
         x = new window.XDomainRequest();
+    } else {
+        x = new window.XMLHttpRequest();
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
-    x.onload = function load() {
-        callback.call(this, null, this);
-        callback = noop;
-    };
+    if ('onload' in x) {
+        x.onload = function load() {
+            callback.call(this, null, this);
+        };
+    } else {
+        x.readystatechange = function readystate() {
+            if (this.readyState === 4) {
+                callback.call(this, null, this);
+            }
+        };
+    }
 
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
@@ -32,7 +41,7 @@ function xhr(url, callback, cors) {
     x.ontimeout = noop;
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
-    x.open('GET', url);
+    x.open('GET', url, true);
     // Send the request. Sending data is not supported.
     x.send(null);
 
