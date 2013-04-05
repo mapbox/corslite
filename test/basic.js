@@ -19,10 +19,10 @@ test('loading a grid', function (t) {
     }, true);
 });
 
-test('handling a 404', function (t) {
-    t.plan(2);
-    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.equal(err.type, 'error');
-        t.equal(resp, undefined);
-    }, true);
-});
+// test('handling a 404', function (t) {
+//     t.plan(2);
+//     xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+//         t.equal(err.type, 'error');
+//         t.equal(resp, undefined);
+//     }, true);
+// });
