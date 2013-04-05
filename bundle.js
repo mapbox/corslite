@@ -1,8 +1,6 @@
 ;(function(e,t,n){function r(n,i){if(!t[n]){if(!e[n]){var s=typeof require=="function"&&require;if(!i&&s)return s(n,!0);throw new Error("Cannot find module '"+n+"'")}var o=t[n]={exports:{}};e[n][0](function(t){var i=e[n][1][t];return r(i?i:t)},o,o.exports)}return t[n].exports}for(var i=0;i<n.length;i++)r(n[i]);return r})({1:[function(require,module,exports){
 function xhr(url, callback, cors) {
 
-    function noop() { }
-
     if (typeof window.XMLHttpRequest === 'undefined') {
         return callback(Error('Browser not supported'));
     }
@@ -34,15 +32,17 @@ function xhr(url, callback, cors) {
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
         callback.call(this, evt);
-        callback = noop;
+        callback = function() { };
     };
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
-    x.ontimeout = noop;
+    x.ontimeout = function() { };
+
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
     x.open('GET', url, true);
+
     // Send the request. Sending data is not supported.
     x.send(null);
 
@@ -62,6 +62,22 @@ test('loading a tileset', function (t) {
     xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
         t.equal(err, null);
         t.equal(resp.responseText, response);
+    }, true);
+});
+
+test('loading a grid', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText.length, 15263);
+    }, true);
+});
+
+test('handling a 404', function (t) {
+    t.plan(2);
+    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.equal(err.type, 'error');
+        t.equal(resp, undefined);
     }, true);
 });
 

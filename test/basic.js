@@ -10,3 +10,19 @@ test('loading a tileset', function (t) {
         t.equal(resp.responseText, response);
     }, true);
 });
+
+test('loading a grid', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText.length, 15263);
+    }, true);
+});
+
+test('handling a 404', function (t) {
+    t.plan(2);
+    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.equal(err.type, 'error');
+        t.equal(resp, undefined);
+    }, true);
+});

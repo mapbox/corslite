@@ -1,7 +1,5 @@
 function xhr(url, callback, cors) {
 
-    function noop() { }
-
     if (typeof window.XMLHttpRequest === 'undefined') {
         return callback(Error('Browser not supported'));
     }
@@ -33,15 +31,17 @@ function xhr(url, callback, cors) {
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
         callback.call(this, evt);
-        callback = noop;
+        callback = function() { };
     };
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
-    x.ontimeout = noop;
+    x.ontimeout = function() { };
+
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
     x.open('GET', url, true);
+
     // Send the request. Sending data is not supported.
     x.send(null);
 
