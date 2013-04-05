@@ -6,7 +6,12 @@ function xhr(url, callback, cors) {
 
     var x;
 
-    if (cors && typeof window.XDomainRequest === 'object') {
+    if (cors && (
+        // IE7-9 Quirks & Compatibility
+        typeof window.XDomainRequest === 'object' ||
+        // IE9 Standards mode
+        typeof window.XDomainRequest === 'function'
+    )) {
         // IE8-10
         x = new window.XDomainRequest();
     } else {
