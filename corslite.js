@@ -41,7 +41,16 @@ function xhr(url, callback, cors) {
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
-    x.ontimeout = function() { };
+
+    x.ontimeout = function() {
+        callback.call(this, evt);
+        callback = function() { };
+    };
+
+    x.onabort = function() {
+        callback.call(this, evt);
+        callback = function() { };
+    };
 
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
