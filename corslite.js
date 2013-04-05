@@ -4,7 +4,7 @@ function xhr(url, callback, cors) {
         return callback(Error('Browser not supported'));
     }
 
-    var x;
+    var x, twoHundred = /^20\d$/;
 
     if (cors && (
         // IE7-9 Quirks & Compatibility
@@ -25,9 +25,10 @@ function xhr(url, callback, cors) {
             callback.call(this, null, this);
         };
     } else {
-        x.readystatechange = function readystate() {
+        x.onreadystatechange = function readystate() {
             if (this.readyState === 4) {
-                callback.call(this, null, this);
+                if (twoHundred.test(this.status)) callback.call(this, null, this);
+                else callback.call(this, this, null);
             }
         };
     }
