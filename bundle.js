@@ -1,4 +1,4 @@
-;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+;(function(e,t,n){function r(n,i){if(!t[n]){if(!e[n]){var s=typeof require=="function"&&require;if(!i&&s)return s(n,!0);throw new Error("Cannot find module '"+n+"'")}var o=t[n]={exports:{}};e[n][0](function(t){var i=e[n][1][t];return r(i?i:t)},o,o.exports)}return t[n].exports}for(var i=0;i<n.length;i++)r(n[i]);return r})({1:[function(require,module,exports){
 function xhr(url, callback, cors) {
 
     if (typeof window.XMLHttpRequest === 'undefined') {
@@ -21,7 +21,7 @@ function xhr(url, callback, cors) {
 
     function loaded() {
         if (twoHundred.test(x.status)) callback.call(x, null, x);
-        else callback.call(x, x, undefined);
+        else callback.call(x, x, null);
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
@@ -39,20 +39,20 @@ function xhr(url, callback, cors) {
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
-        callback.call(this, evt);
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
 
-    x.ontimeout = function() {
-        callback.call(this, evt);
+    x.ontimeout = function(evt) {
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
-    x.onabort = function() {
-        callback.call(this, evt);
+    x.onabort = function(evt) {
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
@@ -327,7 +327,7 @@ function map (xs, f) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"./lib/default_stream":5,"./lib/render":6,"./lib/test":7,"__browserify_process":4}],5:[function(require,module,exports){
+},{"./lib/render":5,"./lib/default_stream":6,"./lib/test":7,"__browserify_process":4}],6:[function(require,module,exports){
 var Stream = require('stream');
 
 module.exports = function () {
@@ -1197,7 +1197,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":9}],6:[function(require,module,exports){
+},{"events":9}],5:[function(require,module,exports){
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
 
@@ -1673,7 +1673,7 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 
 // vim: set softtabstop=4 shiftwidth=4:
 
-})(require("__browserify_process"),"/node_modules/tape/lib")
+})(require("__browserify_process"),"/../node_modules/tape/lib")
 },{"events":9,"path":11,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
@@ -2202,5 +2202,5 @@ module.exports = function (value, replacer, space) {
     return str('', {'': value});
 };
 
-},{}]},{},[1,2])
+},{}]},{},[2])
 ;

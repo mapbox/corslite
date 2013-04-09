@@ -20,7 +20,7 @@ function xhr(url, callback, cors) {
 
     function loaded() {
         if (twoHundred.test(x.status)) callback.call(x, null, x);
-        else callback.call(x, x, undefined);
+        else callback.call(x, x, null);
     }
 
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
@@ -38,20 +38,20 @@ function xhr(url, callback, cors) {
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
-        callback.call(this, evt);
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
 
-    x.ontimeout = function() {
-        callback.call(this, evt);
+    x.ontimeout = function(evt) {
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
-    x.onabort = function() {
-        callback.call(this, evt);
+    x.onabort = function(evt) {
+        callback.call(this, evt, null);
         callback = function() { };
     };
 
