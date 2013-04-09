@@ -4,7 +4,7 @@ function xhr(url, callback, cors) {
         return callback(Error('Browser not supported'));
     }
 
-    var x, twoHundred = /^20\d$/;
+    var x, twoHundred = /^2\d\d$/;
 
     if (cors && (
         // IE7-9 Quirks & Compatibility
