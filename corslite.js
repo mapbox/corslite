@@ -18,17 +18,19 @@ function xhr(url, callback, cors) {
         x = new window.XMLHttpRequest();
     }
 
+    function loaded() {
+        if (twoHundred.test(x.status)) callback.call(x, null, x);
+        else callback.call(x, x, undefined);
+    }
+
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
     if ('onload' in x) {
-        x.onload = function load() {
-            callback.call(this, null, this);
-        };
+        x.onload = loaded;
     } else {
         x.onreadystatechange = function readystate() {
-            if (this.readyState === 4) {
-                if (twoHundred.test(this.status)) callback.call(this, null, this);
-                else callback.call(this, this, null);
+            if (x.readyState === 4) {
+                loaded();
             }
         };
     }

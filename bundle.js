@@ -1,11 +1,11 @@
-;(function(e,t,n){function r(n,i){if(!t[n]){if(!e[n]){var s=typeof require=="function"&&require;if(!i&&s)return s(n,!0);throw new Error("Cannot find module '"+n+"'")}var o=t[n]={exports:{}};e[n][0](function(t){var i=e[n][1][t];return r(i?i:t)},o,o.exports)}return t[n].exports}for(var i=0;i<n.length;i++)r(n[i]);return r})({1:[function(require,module,exports){
+;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
 function xhr(url, callback, cors) {
 
     if (typeof window.XMLHttpRequest === 'undefined') {
         return callback(Error('Browser not supported'));
     }
 
-    var x;
+    var x, twoHundred = /^20\d$/;
 
     if (cors && (
         // IE7-9 Quirks & Compatibility
@@ -19,16 +19,19 @@ function xhr(url, callback, cors) {
         x = new window.XMLHttpRequest();
     }
 
+    function loaded() {
+        if (twoHundred.test(x.status)) callback.call(x, null, x);
+        else callback.call(x, x, undefined);
+    }
+
     // Both `onreadystatechange` and `onload` can fire. `onreadystatechange`
     // has [been supported for longer](http://stackoverflow.com/a/9181508/229001).
     if ('onload' in x) {
-        x.onload = function load() {
-            callback.call(this, null, this);
-        };
+        x.onload = loaded;
     } else {
-        x.readystatechange = function readystate() {
-            if (this.readyState === 4) {
-                callback.call(this, null, this);
+        x.onreadystatechange = function readystate() {
+            if (x.readyState === 4) {
+                loaded();
             }
         };
     }
@@ -42,7 +45,16 @@ function xhr(url, callback, cors) {
 
     // IE9 must have onprogress be set to a unique function.
     x.onprogress = function() { };
-    x.ontimeout = function() { };
+
+    x.ontimeout = function() {
+        callback.call(this, evt);
+        callback = function() { };
+    };
+
+    x.onabort = function() {
+        callback.call(this, evt);
+        callback = function() { };
+    };
 
     // GET is the only supported HTTP Verb by XDomainRequest and is the
     // only one supported here.
@@ -79,6 +91,14 @@ test('loading a grid', function (t) {
 });
 
 test('handling a 404', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
+        t.equal(err.status, 404);
+        t.equal(resp, undefined);
+    }, true);
+});
+
+test('handling a DNS error', function (t) {
     t.plan(2);
     xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
         t.equal(err.type, 'error');
@@ -1177,7 +1197,134 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":9}],7:[function(require,module,exports){
+},{"events":9}],6:[function(require,module,exports){
+var Stream = require('stream');
+var json = typeof JSON === 'object' ? JSON : require('jsonify');
+
+module.exports = Render;
+
+function Render () {
+    Stream.call(this);
+    this.readable = true;
+    this.count = 0;
+    this.fail = 0;
+    this.pass = 0;
+}
+
+Render.prototype = new Stream;
+
+Render.prototype.pipe = function () {
+    this.piped = true;
+    return Stream.prototype.pipe.apply(this, arguments);
+};
+
+Render.prototype.begin = function () {
+    this.emit('data', 'TAP version 13\n');
+};
+
+Render.prototype.push = function (t) {
+    var self = this;
+    this.emit('data', '# ' + t.name + '\n');
+    
+    t.on('result', function (res) {
+        if (typeof res === 'string') {
+            self.emit('data', '# ' + res + '\n');
+            return;
+        }
+
+        self.emit('data', encodeResult(res, self.count + 1));
+        self.count ++;
+        
+        if (res.ok) self.pass ++
+        else self.fail ++
+    });
+};
+
+Render.prototype.close = function () {
+    this.emit('data', '\n1..' + this.count + '\n');
+    this.emit('data', '# tests ' + this.count + '\n');
+    this.emit('data', '# pass  ' + this.pass + '\n');
+    if (this.fail) {
+        this.emit('data', '# fail  ' + this.fail + '\n');
+    }
+    else {
+        this.emit('data', '\n# ok\n');
+    }
+    
+    this.emit('end');
+};
+
+function encodeResult (res, count) {
+    var output = '';
+    output += (res.ok ? 'ok ' : 'not ok ') + count;
+    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
+    
+    if (res.skip) output += ' # SKIP';
+    else if (res.todo) output += ' # TODO';
+    
+    output += '\n';
+    
+    if (!res.ok) {
+        var outer = '  ';
+        var inner = outer + '  ';
+        output += outer + '---\n';
+        output += inner + 'operator: ' + res.operator + '\n';
+        
+        var ex = json.stringify(res.expected, getSerialize()) || '';
+        var ac = json.stringify(res.actual, getSerialize()) || '';
+        
+        if (Math.max(ex.length, ac.length) > 65) {
+            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
+            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
+        }
+        else {
+            output += inner + 'expected: ' + ex + '\n';
+            output += inner + 'actual:   ' + ac + '\n';
+        }
+        if (res.at) {
+            output += inner + 'at: ' + res.at + '\n';
+        }
+        if (res.operator === 'error' && res.actual && res.actual.stack) {
+            var lines = String(res.actual.stack).split('\n');
+            output += inner + 'stack:\n';
+            output += inner + '  ' + lines[0] + '\n';
+            for (var i = 1; i < lines.length; i++) {
+                output += inner + lines[i] + '\n';
+            }
+        }
+        
+        output += outer + '...\n';
+    }
+    
+    return output;
+}
+
+function getSerialize() {
+    var seen = [];
+
+    return function (key, value) {
+        var ret = value;
+        if (typeof value === 'object' && value) {
+            var found = false
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === value) {
+                    found = true
+                    break;
+                }
+            }
+
+            if (found) {
+                ret = '[Circular]'
+            } else {
+                seen.push(value)
+            }
+        }
+
+        return ret
+    }
+}
+
+},{"stream":8,"jsonify":12}],7:[function(require,module,exports){
 (function(process,__dirname){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -1526,8 +1673,8 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 
 // vim: set softtabstop=4 shiftwidth=4:
 
-})(require("__browserify_process"),"/../node_modules/tape/lib")
-},{"events":9,"path":11,"deep-equal":12,"defined":13,"__browserify_process":4}],12:[function(require,module,exports){
+})(require("__browserify_process"),"/node_modules/tape/lib")
+},{"events":9,"path":11,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1613,141 +1760,14 @@ function objEquiv(a, b) {
   return true;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = function () {
     for (var i = 0; i < arguments.length; i++) {
         if (arguments[i] !== undefined) return arguments[i];
     }
 };
 
-},{}],6:[function(require,module,exports){
-var Stream = require('stream');
-var json = typeof JSON === 'object' ? JSON : require('jsonify');
-
-module.exports = Render;
-
-function Render () {
-    Stream.call(this);
-    this.readable = true;
-    this.count = 0;
-    this.fail = 0;
-    this.pass = 0;
-}
-
-Render.prototype = new Stream;
-
-Render.prototype.pipe = function () {
-    this.piped = true;
-    return Stream.prototype.pipe.apply(this, arguments);
-};
-
-Render.prototype.begin = function () {
-    this.emit('data', 'TAP version 13\n');
-};
-
-Render.prototype.push = function (t) {
-    var self = this;
-    this.emit('data', '# ' + t.name + '\n');
-    
-    t.on('result', function (res) {
-        if (typeof res === 'string') {
-            self.emit('data', '# ' + res + '\n');
-            return;
-        }
-
-        self.emit('data', encodeResult(res, self.count + 1));
-        self.count ++;
-        
-        if (res.ok) self.pass ++
-        else self.fail ++
-    });
-};
-
-Render.prototype.close = function () {
-    this.emit('data', '\n1..' + this.count + '\n');
-    this.emit('data', '# tests ' + this.count + '\n');
-    this.emit('data', '# pass  ' + this.pass + '\n');
-    if (this.fail) {
-        this.emit('data', '# fail  ' + this.fail + '\n');
-    }
-    else {
-        this.emit('data', '\n# ok\n');
-    }
-    
-    this.emit('end');
-};
-
-function encodeResult (res, count) {
-    var output = '';
-    output += (res.ok ? 'ok ' : 'not ok ') + count;
-    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
-    
-    if (res.skip) output += ' # SKIP';
-    else if (res.todo) output += ' # TODO';
-    
-    output += '\n';
-    
-    if (!res.ok) {
-        var outer = '  ';
-        var inner = outer + '  ';
-        output += outer + '---\n';
-        output += inner + 'operator: ' + res.operator + '\n';
-        
-        var ex = json.stringify(res.expected, getSerialize()) || '';
-        var ac = json.stringify(res.actual, getSerialize()) || '';
-        
-        if (Math.max(ex.length, ac.length) > 65) {
-            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
-            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
-        }
-        else {
-            output += inner + 'expected: ' + ex + '\n';
-            output += inner + 'actual:   ' + ac + '\n';
-        }
-        if (res.at) {
-            output += inner + 'at: ' + res.at + '\n';
-        }
-        if (res.operator === 'error' && res.actual && res.actual.stack) {
-            var lines = String(res.actual.stack).split('\n');
-            output += inner + 'stack:\n';
-            output += inner + '  ' + lines[0] + '\n';
-            for (var i = 1; i < lines.length; i++) {
-                output += inner + lines[i] + '\n';
-            }
-        }
-        
-        output += outer + '...\n';
-    }
-    
-    return output;
-}
-
-function getSerialize() {
-    var seen = [];
-
-    return function (key, value) {
-        var ret = value;
-        if (typeof value === 'object' && value) {
-            var found = false
-            for (var i = 0; i < seen.length; i++) {
-                if (seen[i] === value) {
-                    found = true
-                    break;
-                }
-            }
-
-            if (found) {
-                ret = '[Circular]'
-            } else {
-                seen.push(value)
-            }
-        }
-
-        return ret
-    }
-}
-
-},{"stream":8,"jsonify":14}],14:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
@@ -2182,5 +2202,5 @@ module.exports = function (value, replacer, space) {
     return str('', {'': value});
 };
 
-},{}]},{},[2])
+},{}]},{},[1,2])
 ;
