@@ -23,7 +23,7 @@ test('handling a 404', function (t) {
     t.plan(2);
     xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
         t.equal(err.status, 404);
-        t.equal(resp, undefined);
+        t.equal(resp, null);
     }, true);
 });
 
@@ -31,6 +31,6 @@ test('handling a DNS error', function (t) {
     t.plan(2);
     xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
         t.equal(err.type, 'error');
-        t.equal(resp, undefined);
+        t.equal(resp, null);
     }, true);
 });
