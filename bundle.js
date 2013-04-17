@@ -1,4 +1,42 @@
 ;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+var test = require('tape'),
+    xhr = require('../');
+
+var response = '{"attribution":"GTOPO30","bounds":[-146.9531,37.1603,-95.2734,70.7869],"center":[-115.8398,52.0525,3],"description":"","download":"http://a.tiles.mapbox.com/v3/tmcw.dem.mbtiles","filesize":575362048,"id":"tmcw.dem","legend":null,"maxzoom":10,"minzoom":0,"name":"Northwest Elevation","scheme":"xyz","tilejson":"2.0.0","tiles":["http://a.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://b.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://c.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://d.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png"],"version":"1.0.0","webpage":"http://tiles.mapbox.com/tmcw/map/dem"}';
+
+test('loading a tileset', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText, response);
+    }, true);
+});
+
+test('loading a grid', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText.length, 15263);
+    }, true);
+});
+
+test('handling a 404', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
+        t.equal(err.status, 404);
+        t.equal(resp, null);
+    }, true);
+});
+
+test('handling a DNS error', function (t) {
+    t.plan(2);
+    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.equal(err.type, 'error');
+        t.equal(resp, null);
+    }, true);
+});
+
+},{"../":2,"tape":3}],2:[function(require,module,exports){
 function xhr(url, callback, cors) {
 
     if (typeof window.XMLHttpRequest === 'undefined') {
@@ -68,45 +106,7 @@ function xhr(url, callback, cors) {
 
 if (typeof module !== 'undefined') module.exports = xhr;
 
-},{}],2:[function(require,module,exports){
-var test = require('tape'),
-    xhr = require('../');
-
-var response = '{"attribution":"GTOPO30","bounds":[-146.9531,37.1603,-95.2734,70.7869],"center":[-115.8398,52.0525,3],"description":"","download":"http://a.tiles.mapbox.com/v3/tmcw.dem.mbtiles","filesize":575362048,"id":"tmcw.dem","legend":null,"maxzoom":10,"minzoom":0,"name":"Northwest Elevation","scheme":"xyz","tilejson":"2.0.0","tiles":["http://a.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://b.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://c.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png","http://d.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png"],"version":"1.0.0","webpage":"http://tiles.mapbox.com/tmcw/map/dem"}';
-
-test('loading a tileset', function (t) {
-    t.plan(2);
-    xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.equal(err, null);
-        t.equal(resp.responseText, response);
-    }, true);
-});
-
-test('loading a grid', function (t) {
-    t.plan(2);
-    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
-        t.equal(err, null);
-        t.equal(resp.responseText.length, 15263);
-    }, true);
-});
-
-test('handling a 404', function (t) {
-    t.plan(2);
-    xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
-        t.equal(err.status, 404);
-        t.equal(resp, undefined);
-    }, true);
-});
-
-test('handling a DNS error', function (t) {
-    t.plan(2);
-    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.equal(err.type, 'error');
-        t.equal(resp, undefined);
-    }, true);
-});
-
-},{"../":1,"tape":3}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -327,7 +327,7 @@ function map (xs, f) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"./lib/render":5,"./lib/default_stream":6,"./lib/test":7,"__browserify_process":4}],6:[function(require,module,exports){
+},{"./lib/default_stream":5,"./lib/render":6,"./lib/test":7,"__browserify_process":4}],5:[function(require,module,exports){
 var Stream = require('stream');
 
 module.exports = function () {
@@ -359,185 +359,7 @@ module.exports = function () {
     return out;
 };
 
-},{"stream":8}],9:[function(require,module,exports){
-(function(process){function filter (xs, fn) {
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (fn(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
-}
-
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length; i >= 0; i--) {
-    var last = parts[i];
-    if (last == '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
-  }
-
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
-  }
-
-  return parts;
-}
-
-// Regex to split a filename into [*, dir, basename, ext]
-// posix version
-var splitPathRe = /^(.+\/(?!$)|\/)?((?:.+?)?(\.[^.]*)?)$/;
-
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-var resolvedPath = '',
-    resolvedAbsolute = false;
-
-for (var i = arguments.length; i >= -1 && !resolvedAbsolute; i--) {
-  var path = (i >= 0)
-      ? arguments[i]
-      : process.cwd();
-
-  // Skip empty and invalid entries
-  if (typeof path !== 'string' || !path) {
-    continue;
-  }
-
-  resolvedPath = path + '/' + resolvedPath;
-  resolvedAbsolute = path.charAt(0) === '/';
-}
-
-// At this point the path should be resolved to a full absolute path, but
-// handle relative paths to be safe (might happen when process.cwd() fails)
-
-// Normalize the path
-resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
-
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
-
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-var isAbsolute = path.charAt(0) === '/',
-    trailingSlash = path.slice(-1) === '/';
-
-// Normalize the path
-path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
-
-  if (!path && !isAbsolute) {
-    path = '.';
-  }
-  if (path && trailingSlash) {
-    path += '/';
-  }
-  
-  return (isAbsolute ? '/' : '') + path;
-};
-
-
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    return p && typeof p === 'string';
-  }).join('/'));
-};
-
-
-exports.dirname = function(path) {
-  var dir = splitPathRe.exec(path)[1] || '';
-  var isWindows = false;
-  if (!dir) {
-    // No dirname
-    return '.';
-  } else if (dir.length === 1 ||
-      (isWindows && dir.length <= 3 && dir.charAt(1) === ':')) {
-    // It is just a slash or a drive letter with a slash
-    return dir;
-  } else {
-    // It is a full dirname, strip trailing slash
-    return dir.substring(0, dir.length - 1);
-  }
-};
-
-
-exports.basename = function(path, ext) {
-  var f = splitPathRe.exec(path)[2] || '';
-  // TODO: make this comparison case-insensitive on windows?
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
-  }
-  return f;
-};
-
-
-exports.extname = function(path) {
-  return splitPathRe.exec(path)[3] || '';
-};
-
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
-  }
-
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
-
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
-      break;
-    }
-  }
-
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
-  }
-
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
-
-  return outputParts.join('/');
-};
-
-})(require("__browserify_process"))
-},{"__browserify_process":4}],8:[function(require,module,exports){
+},{"stream":8}],8:[function(require,module,exports){
 var events = require('events');
 var util = require('util');
 
@@ -658,7 +480,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":10,"util":11}],10:[function(require,module,exports){
+},{"events":9,"util":10}],9:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -845,6 +667,184 @@ EventEmitter.prototype.listeners = function(type) {
 
 })(require("__browserify_process"))
 },{"__browserify_process":4}],11:[function(require,module,exports){
+(function(process){function filter (xs, fn) {
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (fn(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length; i >= 0; i--) {
+    var last = parts[i];
+    if (last == '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Regex to split a filename into [*, dir, basename, ext]
+// posix version
+var splitPathRe = /^(.+\/(?!$)|\/)?((?:.+?)?(\.[^.]*)?)$/;
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+var resolvedPath = '',
+    resolvedAbsolute = false;
+
+for (var i = arguments.length; i >= -1 && !resolvedAbsolute; i--) {
+  var path = (i >= 0)
+      ? arguments[i]
+      : process.cwd();
+
+  // Skip empty and invalid entries
+  if (typeof path !== 'string' || !path) {
+    continue;
+  }
+
+  resolvedPath = path + '/' + resolvedPath;
+  resolvedAbsolute = path.charAt(0) === '/';
+}
+
+// At this point the path should be resolved to a full absolute path, but
+// handle relative paths to be safe (might happen when process.cwd() fails)
+
+// Normalize the path
+resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+var isAbsolute = path.charAt(0) === '/',
+    trailingSlash = path.slice(-1) === '/';
+
+// Normalize the path
+path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+  
+  return (isAbsolute ? '/' : '') + path;
+};
+
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    return p && typeof p === 'string';
+  }).join('/'));
+};
+
+
+exports.dirname = function(path) {
+  var dir = splitPathRe.exec(path)[1] || '';
+  var isWindows = false;
+  if (!dir) {
+    // No dirname
+    return '.';
+  } else if (dir.length === 1 ||
+      (isWindows && dir.length <= 3 && dir.charAt(1) === ':')) {
+    // It is just a slash or a drive letter with a slash
+    return dir;
+  } else {
+    // It is a full dirname, strip trailing slash
+    return dir.substring(0, dir.length - 1);
+  }
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPathRe.exec(path)[2] || '';
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPathRe.exec(path)[3] || '';
+};
+
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+})(require("__browserify_process"))
+},{"__browserify_process":4}],10:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -1197,134 +1197,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":10}],5:[function(require,module,exports){
-var Stream = require('stream');
-var json = typeof JSON === 'object' ? JSON : require('jsonify');
-
-module.exports = Render;
-
-function Render () {
-    Stream.call(this);
-    this.readable = true;
-    this.count = 0;
-    this.fail = 0;
-    this.pass = 0;
-}
-
-Render.prototype = new Stream;
-
-Render.prototype.pipe = function () {
-    this.piped = true;
-    return Stream.prototype.pipe.apply(this, arguments);
-};
-
-Render.prototype.begin = function () {
-    this.emit('data', 'TAP version 13\n');
-};
-
-Render.prototype.push = function (t) {
-    var self = this;
-    this.emit('data', '# ' + t.name + '\n');
-    
-    t.on('result', function (res) {
-        if (typeof res === 'string') {
-            self.emit('data', '# ' + res + '\n');
-            return;
-        }
-
-        self.emit('data', encodeResult(res, self.count + 1));
-        self.count ++;
-        
-        if (res.ok) self.pass ++
-        else self.fail ++
-    });
-};
-
-Render.prototype.close = function () {
-    this.emit('data', '\n1..' + this.count + '\n');
-    this.emit('data', '# tests ' + this.count + '\n');
-    this.emit('data', '# pass  ' + this.pass + '\n');
-    if (this.fail) {
-        this.emit('data', '# fail  ' + this.fail + '\n');
-    }
-    else {
-        this.emit('data', '\n# ok\n');
-    }
-    
-    this.emit('end');
-};
-
-function encodeResult (res, count) {
-    var output = '';
-    output += (res.ok ? 'ok ' : 'not ok ') + count;
-    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
-    
-    if (res.skip) output += ' # SKIP';
-    else if (res.todo) output += ' # TODO';
-    
-    output += '\n';
-    
-    if (!res.ok) {
-        var outer = '  ';
-        var inner = outer + '  ';
-        output += outer + '---\n';
-        output += inner + 'operator: ' + res.operator + '\n';
-        
-        var ex = json.stringify(res.expected, getSerialize()) || '';
-        var ac = json.stringify(res.actual, getSerialize()) || '';
-        
-        if (Math.max(ex.length, ac.length) > 65) {
-            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
-            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
-        }
-        else {
-            output += inner + 'expected: ' + ex + '\n';
-            output += inner + 'actual:   ' + ac + '\n';
-        }
-        if (res.at) {
-            output += inner + 'at: ' + res.at + '\n';
-        }
-        if (res.operator === 'error' && res.actual && res.actual.stack) {
-            var lines = String(res.actual.stack).split('\n');
-            output += inner + 'stack:\n';
-            output += inner + '  ' + lines[0] + '\n';
-            for (var i = 1; i < lines.length; i++) {
-                output += inner + lines[i] + '\n';
-            }
-        }
-        
-        output += outer + '...\n';
-    }
-    
-    return output;
-}
-
-function getSerialize() {
-    var seen = [];
-
-    return function (key, value) {
-        var ret = value;
-        if (typeof value === 'object' && value) {
-            var found = false
-            for (var i = 0; i < seen.length; i++) {
-                if (seen[i] === value) {
-                    found = true
-                    break;
-                }
-            }
-
-            if (found) {
-                ret = '[Circular]'
-            } else {
-                seen.push(value)
-            }
-        }
-
-        return ret
-    }
-}
-
-},{"stream":8,"jsonify":12}],7:[function(require,module,exports){
+},{"events":9}],7:[function(require,module,exports){
 (function(process,__dirname){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -1674,7 +1547,141 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"),"/../node_modules/tape/lib")
-},{"events":10,"path":9,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
+},{"events":9,"path":11,"defined":12,"deep-equal":13,"__browserify_process":4}],6:[function(require,module,exports){
+var Stream = require('stream');
+var json = typeof JSON === 'object' ? JSON : require('jsonify');
+
+module.exports = Render;
+
+function Render () {
+    Stream.call(this);
+    this.readable = true;
+    this.count = 0;
+    this.fail = 0;
+    this.pass = 0;
+}
+
+Render.prototype = new Stream;
+
+Render.prototype.pipe = function () {
+    this.piped = true;
+    return Stream.prototype.pipe.apply(this, arguments);
+};
+
+Render.prototype.begin = function () {
+    this.emit('data', 'TAP version 13\n');
+};
+
+Render.prototype.push = function (t) {
+    var self = this;
+    this.emit('data', '# ' + t.name + '\n');
+    
+    t.on('result', function (res) {
+        if (typeof res === 'string') {
+            self.emit('data', '# ' + res + '\n');
+            return;
+        }
+
+        self.emit('data', encodeResult(res, self.count + 1));
+        self.count ++;
+        
+        if (res.ok) self.pass ++
+        else self.fail ++
+    });
+};
+
+Render.prototype.close = function () {
+    this.emit('data', '\n1..' + this.count + '\n');
+    this.emit('data', '# tests ' + this.count + '\n');
+    this.emit('data', '# pass  ' + this.pass + '\n');
+    if (this.fail) {
+        this.emit('data', '# fail  ' + this.fail + '\n');
+    }
+    else {
+        this.emit('data', '\n# ok\n');
+    }
+    
+    this.emit('end');
+};
+
+function encodeResult (res, count) {
+    var output = '';
+    output += (res.ok ? 'ok ' : 'not ok ') + count;
+    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
+    
+    if (res.skip) output += ' # SKIP';
+    else if (res.todo) output += ' # TODO';
+    
+    output += '\n';
+    
+    if (!res.ok) {
+        var outer = '  ';
+        var inner = outer + '  ';
+        output += outer + '---\n';
+        output += inner + 'operator: ' + res.operator + '\n';
+        
+        var ex = json.stringify(res.expected, getSerialize()) || '';
+        var ac = json.stringify(res.actual, getSerialize()) || '';
+        
+        if (Math.max(ex.length, ac.length) > 65) {
+            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
+            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
+        }
+        else {
+            output += inner + 'expected: ' + ex + '\n';
+            output += inner + 'actual:   ' + ac + '\n';
+        }
+        if (res.at) {
+            output += inner + 'at: ' + res.at + '\n';
+        }
+        if (res.operator === 'error' && res.actual && res.actual.stack) {
+            var lines = String(res.actual.stack).split('\n');
+            output += inner + 'stack:\n';
+            output += inner + '  ' + lines[0] + '\n';
+            for (var i = 1; i < lines.length; i++) {
+                output += inner + lines[i] + '\n';
+            }
+        }
+        
+        output += outer + '...\n';
+    }
+    
+    return output;
+}
+
+function getSerialize() {
+    var seen = [];
+
+    return function (key, value) {
+        var ret = value;
+        if (typeof value === 'object' && value) {
+            var found = false
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === value) {
+                    found = true
+                    break;
+                }
+            }
+
+            if (found) {
+                ret = '[Circular]'
+            } else {
+                seen.push(value)
+            }
+        }
+
+        return ret
+    }
+}
+
+},{"stream":8,"jsonify":14}],12:[function(require,module,exports){
+module.exports = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined) return arguments[i];
+    }
+};
+
+},{}],13:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1761,173 +1768,10 @@ function objEquiv(a, b) {
 }
 
 },{}],14:[function(require,module,exports){
-module.exports = function () {
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] !== undefined) return arguments[i];
-    }
-};
-
-},{}],12:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
-},{"./lib/stringify":15,"./lib/parse":16}],15:[function(require,module,exports){
-var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-    escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-    gap,
-    indent,
-    meta = {    // table of character substitutions
-        '\b': '\\b',
-        '\t': '\\t',
-        '\n': '\\n',
-        '\f': '\\f',
-        '\r': '\\r',
-        '"' : '\\"',
-        '\\': '\\\\'
-    },
-    rep;
-
-function quote(string) {
-    // If the string contains no control characters, no quote characters, and no
-    // backslash characters, then we can safely slap some quotes around it.
-    // Otherwise we must also replace the offending characters with safe escape
-    // sequences.
-    
-    escapable.lastIndex = 0;
-    return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
-        var c = meta[a];
-        return typeof c === 'string' ? c :
-            '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
-    }) + '"' : '"' + string + '"';
-}
-
-function str(key, holder) {
-    // Produce a string from holder[key].
-    var i,          // The loop counter.
-        k,          // The member key.
-        v,          // The member value.
-        length,
-        mind = gap,
-        partial,
-        value = holder[key];
-    
-    // If the value has a toJSON method, call it to obtain a replacement value.
-    if (value && typeof value === 'object' &&
-            typeof value.toJSON === 'function') {
-        value = value.toJSON(key);
-    }
-    
-    // If we were called with a replacer function, then call the replacer to
-    // obtain a replacement value.
-    if (typeof rep === 'function') {
-        value = rep.call(holder, key, value);
-    }
-    
-    // What happens next depends on the value's type.
-    switch (typeof value) {
-        case 'string':
-            return quote(value);
-        
-        case 'number':
-            // JSON numbers must be finite. Encode non-finite numbers as null.
-            return isFinite(value) ? String(value) : 'null';
-        
-        case 'boolean':
-        case 'null':
-            // If the value is a boolean or null, convert it to a string. Note:
-            // typeof null does not produce 'null'. The case is included here in
-            // the remote chance that this gets fixed someday.
-            return String(value);
-            
-        case 'object':
-            if (!value) return 'null';
-            gap += indent;
-            partial = [];
-            
-            // Array.isArray
-            if (Object.prototype.toString.apply(value) === '[object Array]') {
-                length = value.length;
-                for (i = 0; i < length; i += 1) {
-                    partial[i] = str(i, value) || 'null';
-                }
-                
-                // Join all of the elements together, separated with commas, and
-                // wrap them in brackets.
-                v = partial.length === 0 ? '[]' : gap ?
-                    '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
-                    '[' + partial.join(',') + ']';
-                gap = mind;
-                return v;
-            }
-            
-            // If the replacer is an array, use it to select the members to be
-            // stringified.
-            if (rep && typeof rep === 'object') {
-                length = rep.length;
-                for (i = 0; i < length; i += 1) {
-                    k = rep[i];
-                    if (typeof k === 'string') {
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            }
-            else {
-                // Otherwise, iterate through all of the keys in the object.
-                for (k in value) {
-                    if (Object.prototype.hasOwnProperty.call(value, k)) {
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            }
-            
-        // Join all of the member texts together, separated with commas,
-        // and wrap them in braces.
-
-        v = partial.length === 0 ? '{}' : gap ?
-            '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
-            '{' + partial.join(',') + '}';
-        gap = mind;
-        return v;
-    }
-}
-
-module.exports = function (value, replacer, space) {
-    var i;
-    gap = '';
-    indent = '';
-    
-    // If the space parameter is a number, make an indent string containing that
-    // many spaces.
-    if (typeof space === 'number') {
-        for (i = 0; i < space; i += 1) {
-            indent += ' ';
-        }
-    }
-    // If the space parameter is a string, it will be used as the indent string.
-    else if (typeof space === 'string') {
-        indent = space;
-    }
-
-    // If there is a replacer, it must be a function or an array.
-    // Otherwise, throw an error.
-    rep = replacer;
-    if (replacer && typeof replacer !== 'function'
-    && (typeof replacer !== 'object' || typeof replacer.length !== 'number')) {
-        throw new Error('JSON.stringify');
-    }
-    
-    // Make a fake root object containing our value under the key of ''.
-    // Return the result of stringifying the value.
-    return str('', {'': value});
-};
-
-},{}],16:[function(require,module,exports){
+},{"./lib/parse":15,"./lib/stringify":16}],15:[function(require,module,exports){
 var at, // The index of the current character
     ch, // The current character
     escapee = {
@@ -2202,5 +2046,161 @@ module.exports = function (source, reviver) {
     }({'': result}, '')) : result;
 };
 
-},{}]},{},[2])
+},{}],16:[function(require,module,exports){
+var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+    escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+    gap,
+    indent,
+    meta = {    // table of character substitutions
+        '\b': '\\b',
+        '\t': '\\t',
+        '\n': '\\n',
+        '\f': '\\f',
+        '\r': '\\r',
+        '"' : '\\"',
+        '\\': '\\\\'
+    },
+    rep;
+
+function quote(string) {
+    // If the string contains no control characters, no quote characters, and no
+    // backslash characters, then we can safely slap some quotes around it.
+    // Otherwise we must also replace the offending characters with safe escape
+    // sequences.
+    
+    escapable.lastIndex = 0;
+    return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
+        var c = meta[a];
+        return typeof c === 'string' ? c :
+            '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+    }) + '"' : '"' + string + '"';
+}
+
+function str(key, holder) {
+    // Produce a string from holder[key].
+    var i,          // The loop counter.
+        k,          // The member key.
+        v,          // The member value.
+        length,
+        mind = gap,
+        partial,
+        value = holder[key];
+    
+    // If the value has a toJSON method, call it to obtain a replacement value.
+    if (value && typeof value === 'object' &&
+            typeof value.toJSON === 'function') {
+        value = value.toJSON(key);
+    }
+    
+    // If we were called with a replacer function, then call the replacer to
+    // obtain a replacement value.
+    if (typeof rep === 'function') {
+        value = rep.call(holder, key, value);
+    }
+    
+    // What happens next depends on the value's type.
+    switch (typeof value) {
+        case 'string':
+            return quote(value);
+        
+        case 'number':
+            // JSON numbers must be finite. Encode non-finite numbers as null.
+            return isFinite(value) ? String(value) : 'null';
+        
+        case 'boolean':
+        case 'null':
+            // If the value is a boolean or null, convert it to a string. Note:
+            // typeof null does not produce 'null'. The case is included here in
+            // the remote chance that this gets fixed someday.
+            return String(value);
+            
+        case 'object':
+            if (!value) return 'null';
+            gap += indent;
+            partial = [];
+            
+            // Array.isArray
+            if (Object.prototype.toString.apply(value) === '[object Array]') {
+                length = value.length;
+                for (i = 0; i < length; i += 1) {
+                    partial[i] = str(i, value) || 'null';
+                }
+                
+                // Join all of the elements together, separated with commas, and
+                // wrap them in brackets.
+                v = partial.length === 0 ? '[]' : gap ?
+                    '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
+                    '[' + partial.join(',') + ']';
+                gap = mind;
+                return v;
+            }
+            
+            // If the replacer is an array, use it to select the members to be
+            // stringified.
+            if (rep && typeof rep === 'object') {
+                length = rep.length;
+                for (i = 0; i < length; i += 1) {
+                    k = rep[i];
+                    if (typeof k === 'string') {
+                        v = str(k, value);
+                        if (v) {
+                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                        }
+                    }
+                }
+            }
+            else {
+                // Otherwise, iterate through all of the keys in the object.
+                for (k in value) {
+                    if (Object.prototype.hasOwnProperty.call(value, k)) {
+                        v = str(k, value);
+                        if (v) {
+                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                        }
+                    }
+                }
+            }
+            
+        // Join all of the member texts together, separated with commas,
+        // and wrap them in braces.
+
+        v = partial.length === 0 ? '{}' : gap ?
+            '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
+            '{' + partial.join(',') + '}';
+        gap = mind;
+        return v;
+    }
+}
+
+module.exports = function (value, replacer, space) {
+    var i;
+    gap = '';
+    indent = '';
+    
+    // If the space parameter is a number, make an indent string containing that
+    // many spaces.
+    if (typeof space === 'number') {
+        for (i = 0; i < space; i += 1) {
+            indent += ' ';
+        }
+    }
+    // If the space parameter is a string, it will be used as the indent string.
+    else if (typeof space === 'string') {
+        indent = space;
+    }
+
+    // If there is a replacer, it must be a function or an array.
+    // Otherwise, throw an error.
+    rep = replacer;
+    if (replacer && typeof replacer !== 'function'
+    && (typeof replacer !== 'object' || typeof replacer.length !== 'number')) {
+        throw new Error('JSON.stringify');
+    }
+    
+    // Make a fake root object containing our value under the key of ''.
+    // Return the result of stringifying the value.
+    return str('', {'': value});
+};
+
+},{}]},{},[1])
 ;
