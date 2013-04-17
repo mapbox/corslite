@@ -23,7 +23,11 @@ function xhr(url, callback, cors) {
     }
 
     function loaded() {
-        if (isSuccessful(x.status)) callback.call(x, null, x);
+        if (
+            // XDomainRequest
+            x.status === undefined ||
+            // modern browsers
+            isSuccessful(x.status)) callback.call(x, null, x);
         else callback.call(x, x, null);
     }
 
