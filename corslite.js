@@ -4,6 +4,12 @@ function xhr(url, callback, cors) {
         return callback(Error('Browser not supported'));
     }
 
+    if (typeof cors === 'undefined') {
+        var m = url.match(/^\s*https?:\/\/[^\/]*/);
+        cors = m && (m[0] !== location.protocol + '//' + location.domain +
+                (location.port ? ':' + location.port : ''));
+    }
+
     var x;
 
     function isSuccessful(status) {
