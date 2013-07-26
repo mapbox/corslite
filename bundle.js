@@ -1,5 +1,6 @@
 ;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
 function xhr(url, callback, cors) {
+    var sent = false;
 
     if (typeof window.XMLHttpRequest === 'undefined') {
         return callback(Error('Browser not supported'));
@@ -25,6 +26,21 @@ function xhr(url, callback, cors) {
     )) {
         // IE8-10
         x = new window.XDomainRequest();
+
+        // Ensure callback is never called synchronously, i.e., before
+        // x.send() returns (this has been observed in the wild).
+        // See https://github.com/mapbox/mapbox.js/issues/472
+        var original = callback;
+        callback = function() {
+            if (sent) {
+                original.apply(this, arguments);
+            } else {
+                var that = this, args = arguments;
+                setTimeout(function() {
+                    original.apply(that, args);
+                }, 0);
+            }
+        }
     } else {
         x = new window.XMLHttpRequest();
     }
@@ -77,6 +93,7 @@ function xhr(url, callback, cors) {
 
     // Send the request. Sending data is not supported.
     x.send(null);
+    sent = true;
 
     return xhr;
 }
@@ -376,128 +393,7 @@ module.exports = function () {
     return out;
 };
 
-},{"stream":8}],8:[function(require,module,exports){
-var events = require('events');
-var util = require('util');
-
-function Stream() {
-  events.EventEmitter.call(this);
-}
-util.inherits(Stream, events.EventEmitter);
-module.exports = Stream;
-// Backwards-compat with node 0.4.x
-Stream.Stream = Stream;
-
-Stream.prototype.pipe = function(dest, options) {
-  var source = this;
-
-  function ondata(chunk) {
-    if (dest.writable) {
-      if (false === dest.write(chunk) && source.pause) {
-        source.pause();
-      }
-    }
-  }
-
-  source.on('data', ondata);
-
-  function ondrain() {
-    if (source.readable && source.resume) {
-      source.resume();
-    }
-  }
-
-  dest.on('drain', ondrain);
-
-  // If the 'end' option is not supplied, dest.end() will be called when
-  // source gets the 'end' or 'close' events.  Only dest.end() once, and
-  // only when all sources have ended.
-  if (!dest._isStdio && (!options || options.end !== false)) {
-    dest._pipeCount = dest._pipeCount || 0;
-    dest._pipeCount++;
-
-    source.on('end', onend);
-    source.on('close', onclose);
-  }
-
-  var didOnEnd = false;
-  function onend() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.end();
-  }
-
-
-  function onclose() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.destroy();
-  }
-
-  // don't leave dangling pipes when there are errors.
-  function onerror(er) {
-    cleanup();
-    if (this.listeners('error').length === 0) {
-      throw er; // Unhandled stream error in pipe.
-    }
-  }
-
-  source.on('error', onerror);
-  dest.on('error', onerror);
-
-  // remove all the event listeners that were added.
-  function cleanup() {
-    source.removeListener('data', ondata);
-    dest.removeListener('drain', ondrain);
-
-    source.removeListener('end', onend);
-    source.removeListener('close', onclose);
-
-    source.removeListener('error', onerror);
-    dest.removeListener('error', onerror);
-
-    source.removeListener('end', cleanup);
-    source.removeListener('close', cleanup);
-
-    dest.removeListener('end', cleanup);
-    dest.removeListener('close', cleanup);
-  }
-
-  source.on('end', cleanup);
-  source.on('close', cleanup);
-
-  dest.on('end', cleanup);
-  dest.on('close', cleanup);
-
-  dest.emit('pipe', source);
-
-  // Allow for unix-like usage: A.pipe(B).pipe(C)
-  return dest;
-};
-
-},{"events":9,"util":10}],9:[function(require,module,exports){
+},{"stream":8}],9:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -683,7 +579,7 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":4}],11:[function(require,module,exports){
+},{"__browserify_process":4}],10:[function(require,module,exports){
 (function(process){function filter (xs, fn) {
     var res = [];
     for (var i = 0; i < xs.length; i++) {
@@ -861,7 +757,128 @@ exports.relative = function(from, to) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":4}],10:[function(require,module,exports){
+},{"__browserify_process":4}],8:[function(require,module,exports){
+var events = require('events');
+var util = require('util');
+
+function Stream() {
+  events.EventEmitter.call(this);
+}
+util.inherits(Stream, events.EventEmitter);
+module.exports = Stream;
+// Backwards-compat with node 0.4.x
+Stream.Stream = Stream;
+
+Stream.prototype.pipe = function(dest, options) {
+  var source = this;
+
+  function ondata(chunk) {
+    if (dest.writable) {
+      if (false === dest.write(chunk) && source.pause) {
+        source.pause();
+      }
+    }
+  }
+
+  source.on('data', ondata);
+
+  function ondrain() {
+    if (source.readable && source.resume) {
+      source.resume();
+    }
+  }
+
+  dest.on('drain', ondrain);
+
+  // If the 'end' option is not supplied, dest.end() will be called when
+  // source gets the 'end' or 'close' events.  Only dest.end() once, and
+  // only when all sources have ended.
+  if (!dest._isStdio && (!options || options.end !== false)) {
+    dest._pipeCount = dest._pipeCount || 0;
+    dest._pipeCount++;
+
+    source.on('end', onend);
+    source.on('close', onclose);
+  }
+
+  var didOnEnd = false;
+  function onend() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.end();
+  }
+
+
+  function onclose() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.destroy();
+  }
+
+  // don't leave dangling pipes when there are errors.
+  function onerror(er) {
+    cleanup();
+    if (this.listeners('error').length === 0) {
+      throw er; // Unhandled stream error in pipe.
+    }
+  }
+
+  source.on('error', onerror);
+  dest.on('error', onerror);
+
+  // remove all the event listeners that were added.
+  function cleanup() {
+    source.removeListener('data', ondata);
+    dest.removeListener('drain', ondrain);
+
+    source.removeListener('end', onend);
+    source.removeListener('close', onclose);
+
+    source.removeListener('error', onerror);
+    dest.removeListener('error', onerror);
+
+    source.removeListener('end', cleanup);
+    source.removeListener('close', cleanup);
+
+    dest.removeListener('end', cleanup);
+    dest.removeListener('close', cleanup);
+  }
+
+  source.on('end', cleanup);
+  source.on('close', cleanup);
+
+  dest.on('end', cleanup);
+  dest.on('close', cleanup);
+
+  dest.emit('pipe', source);
+
+  // Allow for unix-like usage: A.pipe(B).pipe(C)
+  return dest;
+};
+
+},{"events":9,"util":11}],11:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -1214,7 +1231,134 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":9}],7:[function(require,module,exports){
+},{"events":9}],6:[function(require,module,exports){
+var Stream = require('stream');
+var json = typeof JSON === 'object' ? JSON : require('jsonify');
+
+module.exports = Render;
+
+function Render () {
+    Stream.call(this);
+    this.readable = true;
+    this.count = 0;
+    this.fail = 0;
+    this.pass = 0;
+}
+
+Render.prototype = new Stream;
+
+Render.prototype.pipe = function () {
+    this.piped = true;
+    return Stream.prototype.pipe.apply(this, arguments);
+};
+
+Render.prototype.begin = function () {
+    this.emit('data', 'TAP version 13\n');
+};
+
+Render.prototype.push = function (t) {
+    var self = this;
+    this.emit('data', '# ' + t.name + '\n');
+    
+    t.on('result', function (res) {
+        if (typeof res === 'string') {
+            self.emit('data', '# ' + res + '\n');
+            return;
+        }
+
+        self.emit('data', encodeResult(res, self.count + 1));
+        self.count ++;
+        
+        if (res.ok) self.pass ++
+        else self.fail ++
+    });
+};
+
+Render.prototype.close = function () {
+    this.emit('data', '\n1..' + this.count + '\n');
+    this.emit('data', '# tests ' + this.count + '\n');
+    this.emit('data', '# pass  ' + this.pass + '\n');
+    if (this.fail) {
+        this.emit('data', '# fail  ' + this.fail + '\n');
+    }
+    else {
+        this.emit('data', '\n# ok\n');
+    }
+    
+    this.emit('end');
+};
+
+function encodeResult (res, count) {
+    var output = '';
+    output += (res.ok ? 'ok ' : 'not ok ') + count;
+    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
+    
+    if (res.skip) output += ' # SKIP';
+    else if (res.todo) output += ' # TODO';
+    
+    output += '\n';
+    
+    if (!res.ok) {
+        var outer = '  ';
+        var inner = outer + '  ';
+        output += outer + '---\n';
+        output += inner + 'operator: ' + res.operator + '\n';
+        
+        var ex = json.stringify(res.expected, getSerialize()) || '';
+        var ac = json.stringify(res.actual, getSerialize()) || '';
+        
+        if (Math.max(ex.length, ac.length) > 65) {
+            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
+            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
+        }
+        else {
+            output += inner + 'expected: ' + ex + '\n';
+            output += inner + 'actual:   ' + ac + '\n';
+        }
+        if (res.at) {
+            output += inner + 'at: ' + res.at + '\n';
+        }
+        if (res.operator === 'error' && res.actual && res.actual.stack) {
+            var lines = String(res.actual.stack).split('\n');
+            output += inner + 'stack:\n';
+            output += inner + '  ' + lines[0] + '\n';
+            for (var i = 1; i < lines.length; i++) {
+                output += inner + lines[i] + '\n';
+            }
+        }
+        
+        output += outer + '...\n';
+    }
+    
+    return output;
+}
+
+function getSerialize() {
+    var seen = [];
+
+    return function (key, value) {
+        var ret = value;
+        if (typeof value === 'object' && value) {
+            var found = false
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === value) {
+                    found = true
+                    break;
+                }
+            }
+
+            if (found) {
+                ret = '[Circular]'
+            } else {
+                seen.push(value)
+            }
+        }
+
+        return ret
+    }
+}
+
+},{"stream":8,"jsonify":12}],7:[function(require,module,exports){
 (function(process,__dirname){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -1564,134 +1708,7 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"),"/../node_modules/tape/lib")
-},{"events":9,"path":11,"deep-equal":12,"defined":13,"__browserify_process":4}],6:[function(require,module,exports){
-var Stream = require('stream');
-var json = typeof JSON === 'object' ? JSON : require('jsonify');
-
-module.exports = Render;
-
-function Render () {
-    Stream.call(this);
-    this.readable = true;
-    this.count = 0;
-    this.fail = 0;
-    this.pass = 0;
-}
-
-Render.prototype = new Stream;
-
-Render.prototype.pipe = function () {
-    this.piped = true;
-    return Stream.prototype.pipe.apply(this, arguments);
-};
-
-Render.prototype.begin = function () {
-    this.emit('data', 'TAP version 13\n');
-};
-
-Render.prototype.push = function (t) {
-    var self = this;
-    this.emit('data', '# ' + t.name + '\n');
-    
-    t.on('result', function (res) {
-        if (typeof res === 'string') {
-            self.emit('data', '# ' + res + '\n');
-            return;
-        }
-
-        self.emit('data', encodeResult(res, self.count + 1));
-        self.count ++;
-        
-        if (res.ok) self.pass ++
-        else self.fail ++
-    });
-};
-
-Render.prototype.close = function () {
-    this.emit('data', '\n1..' + this.count + '\n');
-    this.emit('data', '# tests ' + this.count + '\n');
-    this.emit('data', '# pass  ' + this.pass + '\n');
-    if (this.fail) {
-        this.emit('data', '# fail  ' + this.fail + '\n');
-    }
-    else {
-        this.emit('data', '\n# ok\n');
-    }
-    
-    this.emit('end');
-};
-
-function encodeResult (res, count) {
-    var output = '';
-    output += (res.ok ? 'ok ' : 'not ok ') + count;
-    output += res.name ? ' ' + res.name.replace(/\s+/g, ' ') : '';
-    
-    if (res.skip) output += ' # SKIP';
-    else if (res.todo) output += ' # TODO';
-    
-    output += '\n';
-    
-    if (!res.ok) {
-        var outer = '  ';
-        var inner = outer + '  ';
-        output += outer + '---\n';
-        output += inner + 'operator: ' + res.operator + '\n';
-        
-        var ex = json.stringify(res.expected, getSerialize()) || '';
-        var ac = json.stringify(res.actual, getSerialize()) || '';
-        
-        if (Math.max(ex.length, ac.length) > 65) {
-            output += inner + 'expected:\n' + inner + '  ' + ex + '\n';
-            output += inner + 'actual:\n' + inner + '  ' + ac + '\n';
-        }
-        else {
-            output += inner + 'expected: ' + ex + '\n';
-            output += inner + 'actual:   ' + ac + '\n';
-        }
-        if (res.at) {
-            output += inner + 'at: ' + res.at + '\n';
-        }
-        if (res.operator === 'error' && res.actual && res.actual.stack) {
-            var lines = String(res.actual.stack).split('\n');
-            output += inner + 'stack:\n';
-            output += inner + '  ' + lines[0] + '\n';
-            for (var i = 1; i < lines.length; i++) {
-                output += inner + lines[i] + '\n';
-            }
-        }
-        
-        output += outer + '...\n';
-    }
-    
-    return output;
-}
-
-function getSerialize() {
-    var seen = [];
-
-    return function (key, value) {
-        var ret = value;
-        if (typeof value === 'object' && value) {
-            var found = false
-            for (var i = 0; i < seen.length; i++) {
-                if (seen[i] === value) {
-                    found = true
-                    break;
-                }
-            }
-
-            if (found) {
-                ret = '[Circular]'
-            } else {
-                seen.push(value)
-            }
-        }
-
-        return ret
-    }
-}
-
-},{"stream":8,"jsonify":14}],12:[function(require,module,exports){
+},{"events":9,"path":10,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1777,14 +1794,14 @@ function objEquiv(a, b) {
   return true;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = function () {
     for (var i = 0; i < arguments.length; i++) {
         if (arguments[i] !== undefined) return arguments[i];
     }
 };
 
-},{}],14:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
