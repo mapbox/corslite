@@ -52,7 +52,8 @@ function xhr(url, callback, cors) {
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
-        callback.call(this, evt, null);
+        // XDomainRequest provides no evt parameter
+        callback.call(this, evt || true, null);
         callback = function() { };
     };
 

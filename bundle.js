@@ -53,7 +53,8 @@ function xhr(url, callback, cors) {
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
-        callback.call(this, evt, null);
+        // XDomainRequest provides no evt parameter
+        callback.call(this, evt || true, null);
         callback = function() { };
     };
 
@@ -105,17 +106,19 @@ test('loading a grid', function (t) {
 });
 
 test('handling a 404', function (t) {
-    t.plan(2);
+    t.plan(3);
     xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
-        t.equal(err.status, 404);
+        t.ok(err);
+        t.equal(err.status || 404, 404);
         t.equal(resp, null);
     }, true);
 });
 
 test('handling a DNS error', function (t) {
-    t.plan(2);
+    t.plan(3);
     xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.equal(err.type, 'error');
+        t.ok(err);
+        t.equal(err.type || 'error', 'error');
         t.equal(resp, null);
     }, true);
 });
@@ -341,7 +344,7 @@ function map (xs, f) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"./lib/render":5,"./lib/default_stream":6,"./lib/test":7,"__browserify_process":4}],6:[function(require,module,exports){
+},{"./lib/default_stream":5,"./lib/render":6,"./lib/test":7,"__browserify_process":4}],5:[function(require,module,exports){
 var Stream = require('stream');
 
 module.exports = function () {
@@ -1561,100 +1564,7 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"),"/../node_modules/tape/lib")
-},{"events":9,"path":11,"deep-equal":12,"defined":13,"__browserify_process":4}],12:[function(require,module,exports){
-var pSlice = Array.prototype.slice;
-var Object_keys = typeof Object.keys === 'function'
-    ? Object.keys
-    : function (obj) {
-        var keys = [];
-        for (var key in obj) keys.push(key);
-        return keys;
-    }
-;
-
-var deepEqual = module.exports = function (actual, expected) {
-  // 7.1. All identical values are equivalent, as determined by ===.
-  if (actual === expected) {
-    return true;
-
-  } else if (actual instanceof Date && expected instanceof Date) {
-    return actual.getTime() === expected.getTime();
-
-  // 7.3. Other pairs that do not both pass typeof value == 'object',
-  // equivalence is determined by ==.
-  } else if (typeof actual != 'object' && typeof expected != 'object') {
-    return actual == expected;
-
-  // 7.4. For all other Object pairs, including Array objects, equivalence is
-  // determined by having the same number of owned properties (as verified
-  // with Object.prototype.hasOwnProperty.call), the same set of keys
-  // (although not necessarily the same order), equivalent values for every
-  // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and indexed properties on Arrays.
-  } else {
-    return objEquiv(actual, expected);
-  }
-}
-
-function isUndefinedOrNull(value) {
-  return value === null || value === undefined;
-}
-
-function isArguments(object) {
-  return Object.prototype.toString.call(object) == '[object Arguments]';
-}
-
-function objEquiv(a, b) {
-  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
-    return false;
-  // an identical 'prototype' property.
-  if (a.prototype !== b.prototype) return false;
-  //~~~I've managed to break Object.keys through screwy arguments passing.
-  //   Converting to array solves the problem.
-  if (isArguments(a)) {
-    if (!isArguments(b)) {
-      return false;
-    }
-    a = pSlice.call(a);
-    b = pSlice.call(b);
-    return deepEqual(a, b);
-  }
-  try {
-    var ka = Object_keys(a),
-        kb = Object_keys(b),
-        key, i;
-  } catch (e) {//happens when one is a string literal and the other isn't
-    return false;
-  }
-  // having the same number of owned properties (keys incorporates
-  // hasOwnProperty)
-  if (ka.length != kb.length)
-    return false;
-  //the same set of keys (although not necessarily the same order),
-  ka.sort();
-  kb.sort();
-  //~~~cheap key test
-  for (i = ka.length - 1; i >= 0; i--) {
-    if (ka[i] != kb[i])
-      return false;
-  }
-  //equivalent values for every corresponding key, and
-  //~~~possibly expensive deep test
-  for (i = ka.length - 1; i >= 0; i--) {
-    key = ka[i];
-    if (!deepEqual(a[key], b[key])) return false;
-  }
-  return true;
-}
-
-},{}],13:[function(require,module,exports){
-module.exports = function () {
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] !== undefined) return arguments[i];
-    }
-};
-
-},{}],5:[function(require,module,exports){
+},{"events":9,"path":11,"deep-equal":12,"defined":13,"__browserify_process":4}],6:[function(require,module,exports){
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
 
@@ -1781,7 +1691,100 @@ function getSerialize() {
     }
 }
 
-},{"stream":8,"jsonify":14}],14:[function(require,module,exports){
+},{"stream":8,"jsonify":14}],12:[function(require,module,exports){
+var pSlice = Array.prototype.slice;
+var Object_keys = typeof Object.keys === 'function'
+    ? Object.keys
+    : function (obj) {
+        var keys = [];
+        for (var key in obj) keys.push(key);
+        return keys;
+    }
+;
+
+var deepEqual = module.exports = function (actual, expected) {
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (typeof actual != 'object' && typeof expected != 'object') {
+    return actual == expected;
+
+  // 7.4. For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected);
+  }
+}
+
+function isUndefinedOrNull(value) {
+  return value === null || value === undefined;
+}
+
+function isArguments(object) {
+  return Object.prototype.toString.call(object) == '[object Arguments]';
+}
+
+function objEquiv(a, b) {
+  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  //~~~I've managed to break Object.keys through screwy arguments passing.
+  //   Converting to array solves the problem.
+  if (isArguments(a)) {
+    if (!isArguments(b)) {
+      return false;
+    }
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return deepEqual(a, b);
+  }
+  try {
+    var ka = Object_keys(a),
+        kb = Object_keys(b),
+        key, i;
+  } catch (e) {//happens when one is a string literal and the other isn't
+    return false;
+  }
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!deepEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+},{}],13:[function(require,module,exports){
+module.exports = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined) return arguments[i];
+    }
+};
+
+},{}],14:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
