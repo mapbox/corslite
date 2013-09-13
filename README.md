@@ -19,3 +19,4 @@ This comes with caveats:
 
 * No headers are permitted on requests
 * Only 'GET'
+* No access error diagnostics (status code, response body) on IE

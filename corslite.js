@@ -1,4 +1,5 @@
 function xhr(url, callback, cors) {
+    var sent = false;
 
     if (typeof window.XMLHttpRequest === 'undefined') {
         return callback(Error('Browser not supported'));
@@ -24,6 +25,21 @@ function xhr(url, callback, cors) {
     )) {
         // IE8-10
         x = new window.XDomainRequest();
+
+        // Ensure callback is never called synchronously, i.e., before
+        // x.send() returns (this has been observed in the wild).
+        // See https://github.com/mapbox/mapbox.js/issues/472
+        var original = callback;
+        callback = function() {
+            if (sent) {
+                original.apply(this, arguments);
+            } else {
+                var that = this, args = arguments;
+                setTimeout(function() {
+                    original.apply(that, args);
+                }, 0);
+            }
+        }
     } else {
         x = new window.XMLHttpRequest();
     }
@@ -52,7 +68,8 @@ function xhr(url, callback, cors) {
     // Call the callback with the XMLHttpRequest object as an error and prevent
     // it from ever being called again by reassigning it to `noop`
     x.onerror = function error(evt) {
-        callback.call(this, evt, null);
+        // XDomainRequest provides no evt parameter
+        callback.call(this, evt || true, null);
         callback = function() { };
     };
 
@@ -75,6 +92,7 @@ function xhr(url, callback, cors) {
 
     // Send the request. Sending data is not supported.
     x.send(null);
+    sent = true;
 
     return x;
 }
