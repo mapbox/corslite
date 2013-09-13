@@ -76,7 +76,7 @@ function xhr(url, callback, cors) {
     // Send the request. Sending data is not supported.
     x.send(null);
 
-    return xhr;
+    return x;
 }
 
 if (typeof module !== 'undefined') module.exports = xhr;
