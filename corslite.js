@@ -11,19 +11,14 @@ function xhr(url, callback, cors) {
                 (location.port ? ':' + location.port : ''));
     }
 
-    var x;
+    var x = new window.XMLHttpRequest();
 
     function isSuccessful(status) {
         return status >= 200 && status < 300 || status === 304;
     }
 
-    if (cors && (
-        // IE7-9 Quirks & Compatibility
-        typeof window.XDomainRequest === 'object' ||
-        // IE9 Standards mode
-        typeof window.XDomainRequest === 'function'
-    )) {
-        // IE8-10
+    if (cors && !('withCredentials' in x)) {
+        // IE8-9
         x = new window.XDomainRequest();
 
         // Ensure callback is never called synchronously, i.e., before
@@ -40,8 +35,6 @@ function xhr(url, callback, cors) {
                 }, 0);
             }
         }
-    } else {
-        x = new window.XMLHttpRequest();
     }
 
     function loaded() {

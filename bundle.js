@@ -1,4 +1,44 @@
 ;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+var test = require('tape'),
+    xhr = require('../');
+
+var response = "{\"attribution\":\"GTOPO30\",\"bounds\":[-146.9531,37.1603,-95.2734,70.7869],\"center\":[-115.8398,52.0525,3],\"description\":\"\",\"download\":\"http://a.tiles.mapbox.com/v3/tmcw.dem.mbtiles\",\"filesize\":575362048,\"id\":\"tmcw.dem\",\"legend\":null,\"maxzoom\":10,\"minzoom\":0,\"name\":\"Northwest Elevation\",\"scheme\":\"xyz\",\"tilejson\":\"2.0.0\",\"tiles\":[\"http://a.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://b.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://c.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://d.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\"],\"version\":\"1.0.0\",\"webpage\":\"http://a.tiles.mapbox.com/v3/tmcw.dem/page.html\"}";
+
+test('loading a tileset', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText, response);
+    }, true);
+});
+
+test('loading a grid', function (t) {
+    t.plan(2);
+    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
+        t.equal(err, null);
+        t.equal(resp.responseText.length, 15263);
+    }, true);
+});
+
+test('handling a 404', function (t) {
+    t.plan(3);
+    xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
+        t.ok(err);
+        t.equal(err.status || 404, 404);
+        t.equal(resp, null);
+    }, true);
+});
+
+test('handling a DNS error', function (t) {
+    t.plan(3);
+    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+        t.ok(err);
+        t.equal(err.type || 'error', 'error');
+        t.equal(resp, null);
+    }, true);
+});
+
+},{"../":2,"tape":3}],2:[function(require,module,exports){
 function xhr(url, callback, cors) {
     var sent = false;
 
@@ -12,18 +52,13 @@ function xhr(url, callback, cors) {
                 (location.port ? ':' + location.port : ''));
     }
 
-    var x;
+    var x = new window.XMLHttpRequest();
 
     function isSuccessful(status) {
         return status >= 200 && status < 300 || status === 304;
     }
 
-    if (cors && (
-        // IE7-9 Quirks & Compatibility
-        typeof window.XDomainRequest === 'object' ||
-        // IE9 Standards mode
-        typeof window.XDomainRequest === 'function'
-    )) {
+    if (cors && !('withCredentials' in x)) {
         // IE8-10
         x = new window.XDomainRequest();
 
@@ -41,8 +76,6 @@ function xhr(url, callback, cors) {
                 }, 0);
             }
         }
-    } else {
-        x = new window.XMLHttpRequest();
     }
 
     function loaded() {
@@ -100,47 +133,7 @@ function xhr(url, callback, cors) {
 
 if (typeof module !== 'undefined') module.exports = xhr;
 
-},{}],2:[function(require,module,exports){
-var test = require('tape'),
-    xhr = require('../');
-
-var response = "{\"attribution\":\"GTOPO30\",\"bounds\":[-146.9531,37.1603,-95.2734,70.7869],\"center\":[-115.8398,52.0525,3],\"description\":\"\",\"download\":\"http://a.tiles.mapbox.com/v3/tmcw.dem.mbtiles\",\"filesize\":575362048,\"id\":\"tmcw.dem\",\"legend\":null,\"maxzoom\":10,\"minzoom\":0,\"name\":\"Northwest Elevation\",\"scheme\":\"xyz\",\"tilejson\":\"2.0.0\",\"tiles\":[\"http://a.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://b.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://c.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\",\"http://d.tiles.mapbox.com/v3/tmcw.dem/{z}/{x}/{y}.png\"],\"version\":\"1.0.0\",\"webpage\":\"http://a.tiles.mapbox.com/v3/tmcw.dem/page.html\"}";
-
-test('loading a tileset', function (t) {
-    t.plan(2);
-    xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.equal(err, null);
-        t.equal(resp.responseText, response);
-    }, true);
-});
-
-test('loading a grid', function (t) {
-    t.plan(2);
-    xhr('http://b.tiles.mapbox.com/v3/tmcw.kathmandu/13/6037/3439.grid.json', function(err, resp) {
-        t.equal(err, null);
-        t.equal(resp.responseText.length, 15263);
-    }, true);
-});
-
-test('handling a 404', function (t) {
-    t.plan(3);
-    xhr('http://b.tiles.mapbox.com/v3/foo.bar.json', function(err, resp) {
-        t.ok(err);
-        t.equal(err.status || 404, 404);
-        t.equal(resp, null);
-    }, true);
-});
-
-test('handling a DNS error', function (t) {
-    t.plan(3);
-    xhr('http://btiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
-        t.ok(err);
-        t.equal(err.type || 'error', 'error');
-        t.equal(resp, null);
-    }, true);
-});
-
-},{"../":1,"tape":3}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -159,7 +152,8 @@ process.nextTick = (function () {
     if (canPost) {
         var queue = [];
         window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
+            var source = ev.source;
+            if ((source === window || source === null) && ev.data === 'process-tick') {
                 ev.stopPropagation();
                 if (queue.length > 0) {
                     var fn = queue.shift();
@@ -361,7 +355,7 @@ function map (xs, f) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"))
-},{"./lib/default_stream":5,"./lib/test":6,"./lib/render":7,"__browserify_process":4}],5:[function(require,module,exports){
+},{"./lib/default_stream":5,"./lib/render":6,"./lib/test":7,"__browserify_process":4}],5:[function(require,module,exports){
 var Stream = require('stream');
 
 module.exports = function () {
@@ -393,7 +387,128 @@ module.exports = function () {
     return out;
 };
 
-},{"stream":8}],9:[function(require,module,exports){
+},{"stream":8}],8:[function(require,module,exports){
+var events = require('events');
+var util = require('util');
+
+function Stream() {
+  events.EventEmitter.call(this);
+}
+util.inherits(Stream, events.EventEmitter);
+module.exports = Stream;
+// Backwards-compat with node 0.4.x
+Stream.Stream = Stream;
+
+Stream.prototype.pipe = function(dest, options) {
+  var source = this;
+
+  function ondata(chunk) {
+    if (dest.writable) {
+      if (false === dest.write(chunk) && source.pause) {
+        source.pause();
+      }
+    }
+  }
+
+  source.on('data', ondata);
+
+  function ondrain() {
+    if (source.readable && source.resume) {
+      source.resume();
+    }
+  }
+
+  dest.on('drain', ondrain);
+
+  // If the 'end' option is not supplied, dest.end() will be called when
+  // source gets the 'end' or 'close' events.  Only dest.end() once, and
+  // only when all sources have ended.
+  if (!dest._isStdio && (!options || options.end !== false)) {
+    dest._pipeCount = dest._pipeCount || 0;
+    dest._pipeCount++;
+
+    source.on('end', onend);
+    source.on('close', onclose);
+  }
+
+  var didOnEnd = false;
+  function onend() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.end();
+  }
+
+
+  function onclose() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.destroy();
+  }
+
+  // don't leave dangling pipes when there are errors.
+  function onerror(er) {
+    cleanup();
+    if (this.listeners('error').length === 0) {
+      throw er; // Unhandled stream error in pipe.
+    }
+  }
+
+  source.on('error', onerror);
+  dest.on('error', onerror);
+
+  // remove all the event listeners that were added.
+  function cleanup() {
+    source.removeListener('data', ondata);
+    dest.removeListener('drain', ondrain);
+
+    source.removeListener('end', onend);
+    source.removeListener('close', onclose);
+
+    source.removeListener('error', onerror);
+    dest.removeListener('error', onerror);
+
+    source.removeListener('end', cleanup);
+    source.removeListener('close', cleanup);
+
+    dest.removeListener('end', cleanup);
+    dest.removeListener('close', cleanup);
+  }
+
+  source.on('end', cleanup);
+  source.on('close', cleanup);
+
+  dest.on('end', cleanup);
+  dest.on('close', cleanup);
+
+  dest.emit('pipe', source);
+
+  // Allow for unix-like usage: A.pipe(B).pipe(C)
+  return dest;
+};
+
+},{"events":9,"util":10}],9:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -579,7 +694,7 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":4}],10:[function(require,module,exports){
+},{"__browserify_process":4}],11:[function(require,module,exports){
 (function(process){function filter (xs, fn) {
     var res = [];
     for (var i = 0; i < xs.length; i++) {
@@ -757,128 +872,7 @@ exports.relative = function(from, to) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":4}],8:[function(require,module,exports){
-var events = require('events');
-var util = require('util');
-
-function Stream() {
-  events.EventEmitter.call(this);
-}
-util.inherits(Stream, events.EventEmitter);
-module.exports = Stream;
-// Backwards-compat with node 0.4.x
-Stream.Stream = Stream;
-
-Stream.prototype.pipe = function(dest, options) {
-  var source = this;
-
-  function ondata(chunk) {
-    if (dest.writable) {
-      if (false === dest.write(chunk) && source.pause) {
-        source.pause();
-      }
-    }
-  }
-
-  source.on('data', ondata);
-
-  function ondrain() {
-    if (source.readable && source.resume) {
-      source.resume();
-    }
-  }
-
-  dest.on('drain', ondrain);
-
-  // If the 'end' option is not supplied, dest.end() will be called when
-  // source gets the 'end' or 'close' events.  Only dest.end() once, and
-  // only when all sources have ended.
-  if (!dest._isStdio && (!options || options.end !== false)) {
-    dest._pipeCount = dest._pipeCount || 0;
-    dest._pipeCount++;
-
-    source.on('end', onend);
-    source.on('close', onclose);
-  }
-
-  var didOnEnd = false;
-  function onend() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.end();
-  }
-
-
-  function onclose() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.destroy();
-  }
-
-  // don't leave dangling pipes when there are errors.
-  function onerror(er) {
-    cleanup();
-    if (this.listeners('error').length === 0) {
-      throw er; // Unhandled stream error in pipe.
-    }
-  }
-
-  source.on('error', onerror);
-  dest.on('error', onerror);
-
-  // remove all the event listeners that were added.
-  function cleanup() {
-    source.removeListener('data', ondata);
-    dest.removeListener('drain', ondrain);
-
-    source.removeListener('end', onend);
-    source.removeListener('close', onclose);
-
-    source.removeListener('error', onerror);
-    dest.removeListener('error', onerror);
-
-    source.removeListener('end', cleanup);
-    source.removeListener('close', cleanup);
-
-    dest.removeListener('end', cleanup);
-    dest.removeListener('close', cleanup);
-  }
-
-  source.on('end', cleanup);
-  source.on('close', cleanup);
-
-  dest.on('end', cleanup);
-  dest.on('close', cleanup);
-
-  dest.emit('pipe', source);
-
-  // Allow for unix-like usage: A.pipe(B).pipe(C)
-  return dest;
-};
-
-},{"events":9,"util":11}],11:[function(require,module,exports){
+},{"__browserify_process":4}],10:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -1231,7 +1225,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":9}],7:[function(require,module,exports){
+},{"events":9}],6:[function(require,module,exports){
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
 
@@ -1358,7 +1352,7 @@ function getSerialize() {
     }
 }
 
-},{"stream":8,"jsonify":12}],6:[function(require,module,exports){
+},{"stream":8,"jsonify":12}],7:[function(require,module,exports){
 (function(process,__dirname){var EventEmitter = require('events').EventEmitter;
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -1708,7 +1702,14 @@ Test.prototype.doesNotThrow = function (fn, expected, msg, extra) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 })(require("__browserify_process"),"/../node_modules/tape/lib")
-},{"events":9,"path":10,"deep-equal":13,"defined":14,"__browserify_process":4}],13:[function(require,module,exports){
+},{"events":9,"path":11,"defined":13,"deep-equal":14,"__browserify_process":4}],13:[function(require,module,exports){
+module.exports = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined) return arguments[i];
+    }
+};
+
+},{}],14:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -1793,13 +1794,6 @@ function objEquiv(a, b) {
   }
   return true;
 }
-
-},{}],14:[function(require,module,exports){
-module.exports = function () {
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] !== undefined) return arguments[i];
-    }
-};
 
 },{}],12:[function(require,module,exports){
 exports.parse = require('./lib/parse');
@@ -2236,5 +2230,5 @@ module.exports = function (value, replacer, space) {
     return str('', {'': value});
 };
 
-},{}]},{},[2])
+},{}]},{},[1])
 ;
