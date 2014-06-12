@@ -5,7 +5,7 @@
 [![](https://ci.testling.com/mapbox/corslite.png)](https://ci.testling.com/mapbox/corslite)
 
 ```js
-xhr('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
+corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
     // resp is the XMLHttpRequest object
 }, true); // cross origin?
 ```

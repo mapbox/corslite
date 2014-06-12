@@ -1,4 +1,4 @@
-function xhr(url, callback, cors) {
+function corslite(url, callback, cors) {
     var sent = false;
 
     if (typeof window.XMLHttpRequest === 'undefined') {
@@ -97,4 +97,4 @@ function xhr(url, callback, cors) {
     return x;
 }
 
-if (typeof module !== 'undefined') module.exports = xhr;
+if (typeof module !== 'undefined') module.exports = corslite;

@@ -3,52 +3,25 @@
   "version": "0.0.5",
   "description": "xhr for browsers and ie",
   "main": "corslite.js",
-  "directories": {
-    "doc": "docs",
-    "test": "test"
-  },
   "scripts": {
-    "test": "tap test/*.js"
+    "test": "testling"
   },
   "devDependencies": {
     "tape": "~0.3.3",
-    "tap": "~0.4.0",
-    "browserify": "~2.12.0"
+    "testling": "^1.6.1"
   },
   "testling": {
-    "browsers": {
-      "ie": [
-        7,
-        8,
-        9,
-        10
-      ],
-      "ff": [
-        3.5,
-        10,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20
-      ],
-      "chrome": [
-        10,
-        22,
-        25,
-        26,
-        27
-      ],
-      "safari": [
-        5.1,
-        6
-      ],
-      "opera": [
-        12
-      ]
-    },
-    "files": "test/*.js"
+    "browsers": [
+      "ie/7..latest",
+      "firefox/3.5",
+      "firefox/latest",
+      "chrome/latest",
+      "safari/5.1",
+      "safari/6",
+      "opera/12"
+    ],
+    "files": "test.js",
+    "server": "server.js"
   },
   "repository": {
     "type": "git",
@@ -56,6 +29,5 @@
   },
   "author": "",
   "license": "BSD",
-  "readmeFilename": "README.md",
-  "gitHead": "f2178bb0990b9208a18d1671f3b387018279715a"
+  "readmeFilename": "README.md"
 }
