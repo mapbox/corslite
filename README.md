@@ -2,7 +2,7 @@
 
 ## corslite
 
-[![](https://ci.testling.com/mapbox/corslite.png)](https://ci.testling.com/mapbox/corslite)
+[![Build Status](https://travis-ci.org/mapbox/corslite.svg?branch=master)](https://travis-ci.org/mapbox/corslite)
 
 ```js
 corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {

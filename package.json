@@ -4,24 +4,12 @@
   "description": "xhr for browsers and ie",
   "main": "corslite.js",
   "scripts": {
-    "test": "testling"
+    "test": "zuul -- test.js"
   },
   "devDependencies": {
     "tape": "~0.3.3",
-    "testling": "^1.6.1"
-  },
-  "testling": {
-    "browsers": [
-      "ie/7..latest",
-      "firefox/3.5",
-      "firefox/latest",
-      "chrome/latest",
-      "safari/5.1",
-      "safari/6",
-      "opera/12"
-    ],
-    "files": "test.js",
-    "server": "server.js"
+    "mocha": "~1.20.1",
+    "zuul": "~1.6.5"
   },
   "repository": {
     "type": "git",
