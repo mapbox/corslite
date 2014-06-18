@@ -10,3 +10,4 @@ browsers:
     version: latest
   - name: ie
     version: 8..latest
+server: server.js
