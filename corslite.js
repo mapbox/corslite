@@ -7,7 +7,7 @@ function corslite(url, callback, cors) {
 
     if (typeof cors === 'undefined') {
         var m = url.match(/^\s*https?:\/\/[^\/]*/);
-        cors = m && (m[0] !== location.protocol + '//' + location.domain +
+        cors = m && (m[0] !== location.protocol + '//' + location.hostname +
                 (location.port ? ':' + location.port : ''));
     }
 
