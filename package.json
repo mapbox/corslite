@@ -1,6 +1,6 @@
 {
   "name": "corslite",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "xhr for browsers and ie",
   "main": "corslite.js",
   "scripts": {
