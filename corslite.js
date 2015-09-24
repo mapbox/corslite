@@ -17,7 +17,7 @@ function corslite(url, callback, cors) {
         return status >= 200 && status < 300 || status === 304;
     }
 
-    if (cors && !('withCredentials' in x)) {
+    if (cors && (typeof window.XDomainRequest != 'undefined')) {
         // IE8-9
         x = new window.XDomainRequest();
 
