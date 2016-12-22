@@ -1,5 +1,5 @@
 {
-  "name": "corslite",
+  "name": "@mapbox/corslite",
   "version": "0.0.7",
   "description": "xhr for browsers and ie",
   "main": "corslite.js",
