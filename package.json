@@ -1,21 +1,21 @@
 {
-  "name": "@mapbox/corslite",
-  "version": "0.0.7",
-  "description": "xhr for browsers and ie",
-  "main": "corslite.js",
+  "license": "BSD-2-Clause", 
+  "name": "@mapbox/corslite", 
+  "repository": {
+    "url": "git://github.com/mapbox/corslite.git", 
+    "type": "git"
+  }, 
+  "author": "", 
+  "version": "0.0.7", 
   "scripts": {
     "test": "zuul -- test.js"
-  },
+  }, 
   "devDependencies": {
-    "tape": "~0.3.3",
-    "mocha": "~1.20.1",
-    "zuul": "~1.6.5"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/mapbox/corslite.git"
-  },
-  "author": "",
-  "license": "BSD",
-  "readmeFilename": "README.md"
+    "zuul": "~1.6.5", 
+    "tape": "~0.3.3", 
+    "mocha": "~1.20.1"
+  }, 
+  "main": "corslite.js", 
+  "readmeFilename": "README.md", 
+  "description": "xhr for browsers and ie"
 }
