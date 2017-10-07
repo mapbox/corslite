@@ -74,7 +74,7 @@
  *			//make something with response
  *          // resp is the XMLHttpRequest object
  *		}       
- *   },'GET',{lat:0,lng:0},'json',false
+ *   },null,'GET',{lat:0,lng:0},'json',false
  * );
  * ==============================
  * Usage with NodeJS
