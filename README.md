@@ -10,7 +10,7 @@ corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, resp) {
 }, true); // cross origin?
 ```
 
-Example GET request JSON synchronizide with callback and data set on the request
+Example GET request JSON synchronous method with callback and data set on the request
 
 ```js
 corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, response) {
@@ -24,7 +24,7 @@ corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, response) {
 );
 ```
 
-Example POST request JSON synchronizide with callback and not data set on the request
+Example POST request JSON synchronous method with callback and not data set on the request
 
 ```js
 corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, response) {
@@ -39,7 +39,7 @@ corslite('http://b.tiles.mapbox.com/v3/tmcw.dem.json', function(err, response) {
 ```
 
 an AJAX library focused on simplicity and supporting IE8-10 with cross domain
-requests.
+requests. But you can do synchronous method call either.
 
 We're making a deal with the devil and using [XDomainRequest](http://bit.ly/XTxZet)
 in hopes that it is less a hack than [JSONP](http://en.wikipedia.org/wiki/JSONP).
